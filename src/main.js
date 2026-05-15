@@ -50,8 +50,12 @@ async function saveNote() {
   }
 }
 
-// Auto-save every 30s
-setInterval(saveNote, 30000);
+// Auto-save 5s after last edit
+let saveTimer;
+editor.addEventListener("input", () => {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNote, 5000);
+});
 
 // Ctrl+Scroll to zoom
 editor.addEventListener("wheel", (e) => {
@@ -100,6 +104,7 @@ btnPin.addEventListener("click", async () => {
 
 // Minimize
 btnMin.addEventListener("click", async () => {
+  await saveNote();
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
   await getCurrentWindow().minimize();
 });
