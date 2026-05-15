@@ -8,11 +8,17 @@ const btnClose = document.getElementById("btn-close");
 const btnMenu = document.getElementById("btn-menu");
 const menuDropdown = document.getElementById("menu-dropdown");
 const menuWordwrap = document.getElementById("menu-wordwrap");
-const menuTheme = document.getElementById("menu-theme");
-const themeIcon = document.getElementById("theme-icon");
-const themeLabel = document.getElementById("theme-label");
-
 let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false, theme: "dark" };
+
+const themes = [
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+  { id: "dark-black", label: "Dark black" },
+  { id: "dark-blue", label: "Dark blue" },
+  { id: "dark-choco", label: "Dark choco" },
+  { id: "light-blue", label: "Light blue" },
+  { id: "light-orange", label: "Light orange" },
+];
 
 async function loadConfig() {
   try {
@@ -32,10 +38,26 @@ function applyPinState() {
 }
 
 function applyTheme() {
-  const isLight = config.theme === "light";
-  document.body.className = isLight ? "theme-light" : "theme-dark";
-  themeIcon.textContent = isLight ? "☀" : "☾";
-  themeLabel.textContent = isLight ? "Dark theme" : "Light theme";
+  document.body.className = "theme-" + config.theme;
+  document.querySelectorAll("#menu-themes button").forEach((btn) => {
+    btn.className = btn.dataset.theme === config.theme ? "active" : "";
+  });
+}
+
+function initThemes() {
+  const container = document.getElementById("menu-themes");
+  themes.forEach((t) => {
+    const btn = document.createElement("button");
+    btn.dataset.theme = t.id;
+    btn.innerHTML = `<span class="menu-check"></span><span>${t.label}</span>`;
+    btn.addEventListener("click", () => {
+      config.theme = t.id;
+      applyTheme();
+      saveConfig();
+      closeMenu();
+    });
+    container.appendChild(btn);
+  });
 }
 
 function applyWordWrapState() {
@@ -141,14 +163,6 @@ menuWordwrap.addEventListener("click", () => {
   closeMenu();
 });
 
-// Theme toggle
-menuTheme.addEventListener("click", () => {
-  config.theme = config.theme === "dark" ? "light" : "dark";
-  applyTheme();
-  saveConfig();
-  closeMenu();
-});
-
 // Close menu on click outside
 document.addEventListener("click", (e) => {
   if (!document.getElementById("menu-area").contains(e.target)) {
@@ -206,6 +220,7 @@ async function trackWindow() {
   const name = await invoke("get_app_name");
   titleText.textContent = name;
 
+  initThemes();
   await loadConfig();
   await loadNote();
   await trackWindow();

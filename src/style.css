@@ -55,6 +55,131 @@
   --close-active: #bf0f1d;
 }
 
+.theme-dark-black {
+  --bg: #000000;
+  --text: #cccccc;
+  --titlebar-bg: #000000;
+  --btn-color: #999;
+  --btn-hover-bg: rgba(255, 255, 255, 0.08);
+  --btn-hover-text: #fff;
+  --btn-active-bg: rgba(255, 255, 255, 0.12);
+  --pin-active: #ffd700;
+  --pin-hover-bg: rgba(255, 215, 0, 0.12);
+  --title-text: rgba(255, 255, 255, 0.30);
+  --title-sep: rgba(255, 255, 255, 0.05);
+  --menu-bg: #111111;
+  --menu-border: #333333;
+  --menu-text: #cccccc;
+  --menu-hover: rgba(255, 255, 255, 0.06);
+  --check-border: #555;
+  --check-mark: #ffd700;
+  --scroll-thumb: rgba(255, 255, 255, 0.10);
+  --scroll-thumb-hover: rgba(255, 255, 255, 0.20);
+  --selection: #333333;
+  --close-bg: #e81123;
+  --close-active: #bf0f1d;
+}
+
+.theme-dark-blue {
+  --bg: #0d1b2a;
+  --text: #c8d8e8;
+  --titlebar-bg: #0d1b2a;
+  --btn-color: #8aa8c8;
+  --btn-hover-bg: rgba(255, 255, 255, 0.07);
+  --btn-hover-text: #fff;
+  --btn-active-bg: rgba(255, 255, 255, 0.11);
+  --pin-active: #5dade2;
+  --pin-hover-bg: rgba(93, 173, 226, 0.15);
+  --title-text: rgba(200, 216, 232, 0.35);
+  --title-sep: rgba(200, 216, 232, 0.08);
+  --menu-bg: #152238;
+  --menu-border: #1e3350;
+  --menu-text: #c8d8e8;
+  --menu-hover: rgba(255, 255, 255, 0.06);
+  --check-border: #4a6a8a;
+  --check-mark: #5dade2;
+  --scroll-thumb: rgba(200, 216, 232, 0.12);
+  --scroll-thumb-hover: rgba(200, 216, 232, 0.22);
+  --selection: #1e3a5f;
+  --close-bg: #e81123;
+  --close-active: #bf0f1d;
+}
+
+.theme-dark-choco {
+  --bg: #1a0f0a;
+  --text: #d4c4b0;
+  --titlebar-bg: #1a0f0a;
+  --btn-color: #b09880;
+  --btn-hover-bg: rgba(255, 255, 255, 0.07);
+  --btn-hover-text: #fff;
+  --btn-active-bg: rgba(255, 255, 255, 0.11);
+  --pin-active: #e8c088;
+  --pin-hover-bg: rgba(232, 192, 136, 0.15);
+  --title-text: rgba(212, 196, 176, 0.35);
+  --title-sep: rgba(212, 196, 176, 0.08);
+  --menu-bg: #2a1a10;
+  --menu-border: #3a2818;
+  --menu-text: #d4c4b0;
+  --menu-hover: rgba(255, 255, 255, 0.06);
+  --check-border: #8a7058;
+  --check-mark: #e8c088;
+  --scroll-thumb: rgba(212, 196, 176, 0.12);
+  --scroll-thumb-hover: rgba(212, 196, 176, 0.22);
+  --selection: #3a2818;
+  --close-bg: #e81123;
+  --close-active: #bf0f1d;
+}
+
+.theme-light-blue {
+  --bg: #e8f0fe;
+  --text: #1a1a2e;
+  --titlebar-bg: #e8f0fe;
+  --btn-color: #5a6a8a;
+  --btn-hover-bg: rgba(0, 0, 0, 0.05);
+  --btn-hover-text: #000;
+  --btn-active-bg: rgba(0, 0, 0, 0.09);
+  --pin-active: #3a7bd5;
+  --pin-hover-bg: rgba(58, 123, 213, 0.12);
+  --title-text: rgba(26, 26, 46, 0.30);
+  --title-sep: rgba(0, 0, 0, 0.06);
+  --menu-bg: #ffffff;
+  --menu-border: #c8d4e8;
+  --menu-text: #1a1a2e;
+  --menu-hover: rgba(0, 0, 0, 0.05);
+  --check-border: #8a9abb;
+  --check-mark: #3a7bd5;
+  --scroll-thumb: rgba(0, 0, 0, 0.10);
+  --scroll-thumb-hover: rgba(0, 0, 0, 0.20);
+  --selection: #b8c8e8;
+  --close-bg: #e81123;
+  --close-active: #bf0f1d;
+}
+
+.theme-light-orange {
+  --bg: #fef0e0;
+  --text: #2a1a0a;
+  --titlebar-bg: #fef0e0;
+  --btn-color: #8a7058;
+  --btn-hover-bg: rgba(0, 0, 0, 0.05);
+  --btn-hover-text: #000;
+  --btn-active-bg: rgba(0, 0, 0, 0.09);
+  --pin-active: #d4802a;
+  --pin-hover-bg: rgba(212, 128, 42, 0.12);
+  --title-text: rgba(42, 26, 10, 0.30);
+  --title-sep: rgba(0, 0, 0, 0.06);
+  --menu-bg: #ffffff;
+  --menu-border: #e0d0c0;
+  --menu-text: #2a1a0a;
+  --menu-hover: rgba(0, 0, 0, 0.05);
+  --check-border: #b09880;
+  --check-mark: #d4802a;
+  --scroll-thumb: rgba(0, 0, 0, 0.10);
+  --scroll-thumb-hover: rgba(0, 0, 0, 0.20);
+  --selection: #f0dcc8;
+  --close-bg: #e81123;
+  --close-active: #bf0f1d;
+}
+
 html, body {
   width: 100%;
   height: 100%;
@@ -219,6 +344,34 @@ html, body {
   content: '✓';
   font-size: 11px;
   color: var(--check-mark);
+}
+
+.menu-sep {
+  height: 1px;
+  background: var(--menu-border);
+  margin: 4px 8px;
+}
+
+.menu-label {
+  padding: 4px 12px;
+  font-size: 10px;
+  font-family: 'Segoe UI', sans-serif;
+  color: var(--check-border);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+}
+
+#menu-themes button {
+  padding-left: 20px;
+}
+
+#menu-themes button .menu-check {
+  display: none;
+}
+
+#menu-themes button.active .menu-check {
+  display: flex;
 }
 
 #theme-icon {
