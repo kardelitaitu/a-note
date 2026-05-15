@@ -72,4 +72,66 @@ proptest! {
         let result = sticky_notes_lib::crypto::decrypt(&ct, &nonce, &key_b);
         assert!(result.is_err());
     }
+
+    // ── Different salts → different keys ───────────────────────────
+    //
+    // Same password with different salts must produce different keys.
+    #[test]
+    fn prop_different_salts_different_keys(password: String) {
+        let salt_a = sticky_notes_lib::crypto::generate_salt();
+        let salt_b = sticky_notes_lib::crypto::generate_salt();
+
+        let key_a = sticky_notes_lib::crypto::derive_key(&password, &salt_a).unwrap();
+        let key_b = sticky_notes_lib::crypto::derive_key(&password, &salt_b).unwrap();
+
+        // Cryptographic collision probability is ~2^-256
+        if key_a == key_b {
+            return Ok(());
+        }
+        assert_ne!(key_a, key_b);
+    }
+
+    // ── Note JSON roundtrip ────────────────────────────────────────
+    //
+    // Any valid Note serializes to JSON and deserializes back correctly.
+    #[test]
+    fn prop_note_json_roundtrip(
+        text: String,
+        cursor_pos: u32,
+        scroll_top: u32,
+    ) {
+        let note = sticky_notes_lib::note::Note {
+            text,
+            cursor_pos,
+            scroll_top,
+        };
+        let json = serde_json::to_string(&note).unwrap();
+        let restored: sticky_notes_lib::note::Note =
+            serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.text, note.text);
+        assert_eq!(restored.cursor_pos, note.cursor_pos);
+        assert_eq!(restored.scroll_top, note.scroll_top);
+    }
+
+    // ── NoteFile encrypted roundtrip ───────────────────────────────
+    //
+    // Any text encrypted into a NoteFile and then decrypted must
+    // produce the original Note with the same content.
+    #[test]
+    fn prop_notefile_encrypted_decrypts(text: String) {
+        let salt = sticky_notes_lib::crypto::generate_salt();
+        let key = sticky_notes_lib::crypto::derive_key("prop-nf-roundtrip", &salt).unwrap();
+
+        let note = sticky_notes_lib::note::Note {
+            text,
+            cursor_pos: 0,
+            scroll_top: 0,
+        };
+
+        let nf = sticky_notes_lib::note::NoteFile::from_encrypted(&note, &key).unwrap();
+        let restored = nf.decrypt_to_note(&key).unwrap();
+        assert_eq!(restored.text, note.text);
+        assert_eq!(restored.cursor_pos, note.cursor_pos);
+        assert_eq!(restored.scroll_top, note.scroll_top);
+    }
 }

@@ -206,4 +206,18 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(&dir);
     }
+
+    #[test]
+    fn test_write_nonexistent_parent_does_not_panic() {
+        // Writing to a path whose parent directory doesn't exist
+        // should fail silently (no panic), not crash.
+        let dir = std::env::temp_dir().join(format!("a-note-test-nonexist-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir); // ensure it doesn't exist
+        let path = dir.join("nested").join("file.txt");
+
+        // This should not panic — write() discards the error
+        write(&path, "should fail silently");
+        // File should NOT exist since parent doesn't exist
+        assert!(!path.exists());
+    }
 }

@@ -7,7 +7,7 @@
 //! Run with: `cargo test --test encryption`
 
 use sticky_notes_lib::crypto;
-use sticky_notes_lib::note::{self, Note, NoteFile};
+use sticky_notes_lib::note::{Note, NoteFile};
 
 // ── Full workflow: salt → key → encrypt → file → decrypt ─────────────
 

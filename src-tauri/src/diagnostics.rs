@@ -62,7 +62,7 @@ pub fn event(category: &str, message: &str) {
 
     // Keep log under ~100 KB — trim oldest lines
     if log.len() > 100_000 {
-        if let Some(pos) = log.rfind('\n') {
+        if let Some(_pos) = log.rfind('\n') {
             let trimmed = &log[log.len() - 90_000..];
             let first_newline = trimmed.find('\n').unwrap_or(0);
             log = format!("[log trimmed]\n{}", &trimmed[first_newline + 1..]);
@@ -82,9 +82,13 @@ fn timestamp() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    static DIAG_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
     fn test_event_appends_to_log() {
+        let _lock = DIAG_LOCK.lock().unwrap();
         let dir = exe_dir();
         let stem = exe_stem();
         let path = dir.join(format!("{stem}.log"));
@@ -125,5 +129,64 @@ mod tests {
         let path_str = path.to_string_lossy();
         assert!(path_str.contains(stem.as_str()));
         assert!(path_str.ends_with(".log"));
+    }
+
+    #[test]
+    fn test_log_rotation() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let dir = exe_dir();
+        let stem = exe_stem();
+        let path = dir.join(format!("{stem}.log"));
+        let _ = std::fs::write(&path, "");
+
+        // Write enough content to trigger rotation (>100KB)
+        let big_line = "x".repeat(5_000);
+        for _ in 0..25 {
+            event("bulk", &big_line);
+        }
+
+        let content = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(
+            content.len() <= 100_000,
+            "log should be trimmed to ≤100KB, got {}",
+            content.len()
+        );
+        // After rotation, the log should still start with the trim marker
+        assert!(
+            content.contains("[log trimmed]"),
+            "rotation should add a trim marker"
+        );
+    }
+
+    #[test]
+    fn test_event_with_newlines_in_message() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let dir = exe_dir();
+        let stem = exe_stem();
+        let path = dir.join(format!("{stem}.log"));
+        let _ = std::fs::write(&path, "");
+
+        event("multi", "line one\nline two\nline three");
+        let content = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(content.contains("line one"));
+        assert!(content.contains("line two"));
+        assert!(content.contains("line three"));
+        // The event should be a single log entry despite newlines
+        let lines: Vec<&str> = content.lines().collect();
+        assert_eq!(lines.len(), 3, "should have 3 lines for the 3-line message");
+    }
+
+    #[test]
+    fn test_event_empty_category() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let dir = exe_dir();
+        let stem = exe_stem();
+        let path = dir.join(format!("{stem}.log"));
+        let _ = std::fs::write(&path, "");
+
+        // Empty category should still produce a valid log line
+        event("", "just a message");
+        let content = std::fs::read_to_string(&path).unwrap_or_default();
+        assert!(content.contains(": just a message"));
     }
 }
