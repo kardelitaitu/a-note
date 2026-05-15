@@ -34,11 +34,12 @@ async function loadNote() {
   try {
     const data = await invoke("load_note");
     editor.value = data.text;
-    requestAnimationFrame(() => {
-      const pos = data.cursor_pos || 0;
+    editor.focus();
+    const pos = Math.min(data.cursor_pos || 0, data.text.length);
+    setTimeout(() => {
       editor.setSelectionRange(pos, pos);
       editor.scrollTop = data.scroll_top || 0;
-    });
+    }, 0);
   } catch (e) {
     console.error("load_note failed:", e);
   }
