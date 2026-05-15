@@ -32,7 +32,13 @@ async function saveConfig() {
 
 async function loadNote() {
   try {
-    editor.value = await invoke("load_note");
+    const data = await invoke("load_note");
+    editor.value = data.text;
+    requestAnimationFrame(() => {
+      const pos = data.cursor_pos || 0;
+      editor.setSelectionRange(pos, pos);
+      editor.scrollTop = data.scroll_top || 0;
+    });
   } catch (e) {
     console.error("load_note failed:", e);
   }
@@ -40,7 +46,13 @@ async function loadNote() {
 
 async function saveNote() {
   try {
-    await invoke("save_note", { text: editor.value });
+    await invoke("save_note", {
+      note: {
+        text: editor.value,
+        cursor_pos: editor.selectionStart,
+        scroll_top: editor.scrollTop,
+      },
+    });
   } catch (e) {
     console.error("save_note failed:", e);
   }

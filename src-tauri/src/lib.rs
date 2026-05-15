@@ -16,8 +16,13 @@ fn save_config(cfg: config::Config) {
 }
 
 #[tauri::command]
-fn load_note() -> String {
+fn load_note() -> note::Note {
     note::load()
+}
+
+#[tauri::command]
+fn save_note(note: note::Note) {
+    note::save(&note);
 }
 
 #[tauri::command]
@@ -26,11 +31,6 @@ fn get_app_name() -> String {
         .ok()
         .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
         .unwrap_or_else(|| "Notes".to_string())
-}
-
-#[tauri::command]
-fn save_note(text: String) {
-    note::save(&text);
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
