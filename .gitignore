@@ -1,0 +1,36 @@
+# Rust / Cargo
+src-tauri/target/
+
+# Node / Vite
+node_modules/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Data files (auto-generated at runtime)
+sticky.config
+sticky.notes
+
+# Reference app — stale binaries & runtime data
+this is the reference folder/Notes.exe
+this is the reference folder/Notes.lnk
+this is the reference folder/StickyNote.cfg
+this is the reference folder/temp.json
+
+# AI agent instructions (not part of the project source)
+AGENTS.md
+
+# Tauri generated schemas
+src-tauri/gen/

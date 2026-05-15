@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sticky Notes</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <textarea id="editor" spellcheck="false"></textarea>
+    <div id="titlebar" data-tauri-drag-region>
+      <span id="title-text"></span>
+      <button id="btn-pin">📌</button>
+      <button id="btn-minimize">&mdash;</button>
+      <button id="btn-close">&times;</button>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
