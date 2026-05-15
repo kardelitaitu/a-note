@@ -6,3 +6,5 @@ dist/
 *.exp
 *.lib
 *.d
+TODO.md
+AGENTS.md
