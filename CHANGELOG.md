@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.1.3 — 2026-05-15
+
+### Added
+- Font selection in hamburger menu: 10 fonts (Cascadia Code, JetBrains Mono, Fira Code, Source Code Pro, Inter, Roboto, Open Sans, Segoe UI, Arial, Georgia)
+- Font submenu with back navigation and checkmark on active font
+- Google Fonts CDN integration (7 web fonts loaded automatically)
+- Font selection persists across sessions via `font_family` config field
+- `font_family` config backward compatibility (defaults to "Cascadia Code" on old configs)
+- Crash reporter: panics captured to `{app}.crash`, major events logged to `{app}.log`
+- `CONTRIBUTING.md` with cross-platform setup guides (Windows, macOS, Linux, mobile)
+- MIT `LICENSE` file
+- Encrypted→plaintext migration: `remove_password` now writes consistent `NoteFile` format
+- 4 new migration tests: format validation, file I/O, empty note, unicode
+- 2 new font config tests: default, backward compat
+
+### Changed
+- `remove_password` uses `note::save_file` with `NoteFile { encrypted: false }` instead of old `Note::save`
+- Close menu clears font submenu state
+- `Config` struct: added `font_family: String` field
+
+### Security
+- Crash logs stored locally next to `.exe` — no network calls
+- Event logging for password operations (set, unlock, lock, remove, change)
+
 ## 0.1.2 — 2026-05-15
 
 ### Added

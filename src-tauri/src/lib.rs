@@ -223,8 +223,16 @@ fn remove_password(
     let nf = note::load_file();
     let decrypted = nf.decrypt_to_note(&key)?;
 
-    // Save as plaintext
-    note::save(&decrypted);
+    // Save as plaintext NoteFile (consistent format)
+    let plain_nf = note::NoteFile {
+        encrypted: false,
+        nonce_hex: None,
+        ciphertext_hex: None,
+        text: decrypted.text,
+        cursor_pos: decrypted.cursor_pos,
+        scroll_top: decrypted.scroll_top,
+    };
+    note::save_file(&plain_nf);
 
     // Update config
     let mut config = config::load();

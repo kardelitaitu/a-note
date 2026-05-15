@@ -975,4 +975,178 @@ mod tests {
         // The plaintext "text" field must NOT be present in serialized output
         assert!(!json.contains("\"text\":"));
     }
+
+    // ── Encrypted → plaintext migration (remove_password flow) ─────
+
+    #[test]
+    fn test_remove_password_migration_format() {
+        // Simulate what remove_password does:
+        // 1. Encrypted NoteFile → decrypt to Note
+        // 2. Write as plaintext NoteFile (encrypted: false)
+        let salt = generate_salt();
+        let key = derive_key("migrate-test", &salt).unwrap();
+
+        // Start with encrypted note
+        let note = Note {
+            text: "secret content".to_string(),
+            cursor_pos: 5,
+            scroll_top: 2,
+        };
+        let enc = NoteFile::from_encrypted(&note, &key).unwrap();
+
+        // Decrypt (step 1 of remove_password)
+        let decrypted = enc.decrypt_to_note(&key).unwrap();
+
+        // Write as plaintext NoteFile (step 2 of remove_password)
+        let plain = NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: decrypted.text,
+            cursor_pos: decrypted.cursor_pos,
+            scroll_top: decrypted.scroll_top,
+        };
+
+        // Verify the format: must have encrypted:false and text field
+        let json = serde_json::to_string(&plain).unwrap();
+        assert!(json.contains("\"encrypted\":false"));
+        assert!(json.contains("\"text\":\"secret content\""));
+        assert!(json.contains("\"cursor_pos\":5"));
+        assert!(json.contains("\"scroll_top\":2"));
+        // Must NOT have crypto fields
+        assert!(!json.contains("nonce_hex"));
+        assert!(!json.contains("ciphertext_hex"));
+
+        // Verify it loads back correctly via load_note path
+        let loaded: NoteFile = serde_json::from_str(&json).unwrap();
+        assert!(!loaded.encrypted);
+        let result = loaded.decrypt_to_note(&[0u8; 32]).unwrap();
+        assert_eq!(result.text, "secret content");
+        assert_eq!(result.cursor_pos, 5);
+        assert_eq!(result.scroll_top, 2);
+    }
+
+    #[test]
+    fn test_remove_password_migration_file_io() {
+        // Full file I/O simulation: encrypted → file → remove password → file → load
+        let dir = std::env::temp_dir().join(format!(
+            "a-note-test-remove-pwd-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("sticky.notes");
+
+        let salt = generate_salt();
+        let key = derive_key("file-migrate", &salt).unwrap();
+
+        // 1. Create and save encrypted NoteFile
+        let note = Note {
+            text: "will lose encryption".to_string(),
+            cursor_pos: 10,
+            scroll_top: 3,
+        };
+        let enc = NoteFile::from_encrypted(&note, &key).unwrap();
+        let json_enc = serde_json::to_string_pretty(&enc).unwrap();
+        std::fs::write(&path, &json_enc).unwrap();
+
+        // 2. Read back and decrypt (simulate remove_password)
+        let read_back = std::fs::read_to_string(&path).unwrap();
+        let loaded_enc: NoteFile = serde_json::from_str(&read_back).unwrap();
+        assert!(loaded_enc.encrypted);
+        let decrypted = loaded_enc.decrypt_to_note(&key).unwrap();
+
+        // 3. Write as plaintext NoteFile
+        let plain = NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: decrypted.text,
+            cursor_pos: decrypted.cursor_pos,
+            scroll_top: decrypted.scroll_top,
+        };
+        let json_plain = serde_json::to_string_pretty(&plain).unwrap();
+        std::fs::write(&path, &json_plain).unwrap();
+
+        // 4. Read back — must be plaintext
+        let final_read = std::fs::read_to_string(&path).unwrap();
+        let loaded_plain: NoteFile = serde_json::from_str(&final_read).unwrap();
+        assert!(!loaded_plain.encrypted);
+        assert_eq!(loaded_plain.text, "will lose encryption");
+        assert_eq!(loaded_plain.cursor_pos, 10);
+        assert_eq!(loaded_plain.scroll_top, 3);
+        assert!(loaded_plain.nonce_hex.is_none());
+        assert!(loaded_plain.ciphertext_hex.is_none());
+
+        // 5. Verify it can be read by old Note::load format too (backward compat)
+        let as_note: Note = serde_json::from_str(&final_read).unwrap();
+        assert_eq!(as_note.text, "will lose encryption");
+        assert_eq!(as_note.cursor_pos, 10);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_remove_password_migration_empty_note() {
+        // Edge case: empty note after removing password
+        let salt = generate_salt();
+        let key = derive_key("empty-migrate", &salt).unwrap();
+
+        let note = Note {
+            text: String::new(),
+            cursor_pos: 0,
+            scroll_top: 0,
+        };
+        let enc = NoteFile::from_encrypted(&note, &key).unwrap();
+        let decrypted = enc.decrypt_to_note(&key).unwrap();
+
+        let plain = NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: decrypted.text,
+            cursor_pos: decrypted.cursor_pos,
+            scroll_top: decrypted.scroll_top,
+        };
+
+        let json = serde_json::to_string(&plain).unwrap();
+        // Empty "text" field is skipped by skip_serializing_if
+        // only encrypted + cursor_pos + scroll_top are present
+        assert!(!json.contains("\"text\":"));
+        let loaded: NoteFile = serde_json::from_str(&json).unwrap();
+        assert!(!loaded.encrypted);
+        assert!(loaded.text.is_empty());
+        assert_eq!(loaded.cursor_pos, 0);
+        assert_eq!(loaded.scroll_top, 0);
+        assert!(loaded.nonce_hex.is_none());
+        assert!(loaded.ciphertext_hex.is_none());
+    }
+
+    #[test]
+    fn test_remove_password_migration_unicode() {
+        let salt = generate_salt();
+        let key = derive_key("unicode-migrate", &salt).unwrap();
+
+        let text = "Removed 🔒 password — 密码已移除";
+        let note = Note {
+            text: text.to_string(),
+            cursor_pos: 12,
+            scroll_top: 1,
+        };
+        let enc = NoteFile::from_encrypted(&note, &key).unwrap();
+        let decrypted = enc.decrypt_to_note(&key).unwrap();
+
+        let plain = NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: decrypted.text,
+            cursor_pos: decrypted.cursor_pos,
+            scroll_top: decrypted.scroll_top,
+        };
+
+        let json = serde_json::to_string(&plain).unwrap();
+        let loaded: NoteFile = serde_json::from_str(&json).unwrap();
+        assert_eq!(loaded.text, text);
+        assert_eq!(loaded.cursor_pos, 12);
+    }
 }

@@ -136,6 +136,7 @@ mod tests {
             password_protected: true,
             password_salt: "aabbccdd".to_string(),
             lock_timeout_minutes: 15,
+            font_family: "Inter".to_string(),
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         let restored: Config = serde_json::from_str(&json).unwrap();
@@ -152,6 +153,7 @@ mod tests {
         assert!(restored.password_protected);
         assert_eq!(restored.password_salt, "aabbccdd");
         assert_eq!(restored.lock_timeout_minutes, 15);
+        assert_eq!(restored.font_family, "Inter");
     }
 
     #[test]
@@ -174,6 +176,7 @@ mod tests {
             password_protected: true,
             password_salt: "deadbeef".to_string(),
             lock_timeout_minutes: 30,
+            font_family: "Roboto".to_string(),
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         crate::util::write(&path, &json);
