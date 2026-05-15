@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.1.5 — 2026-05-16
+
+### Added
+- "Auto Start" toggle in hamburger menu: starts notes.exe on Windows boot
+- Windows Run registry key (`HKCU\...\Run\Notes`) written via raw Win32 FFI — no new crate deps
+- `set_start_with_windows` Tauri command + JS toggle handler with checkmark feedback
+- `get_startup_registry()` read-back function (validates key via `RegQueryValueExW`)
+- `start_with_windows` config field with `#[serde(default)]` for backward compat
+- 4 registry integration tests: set, read, disable, idempotency (serialized via Mutex)
+- 3 config tests: default false, JSON roundtrip, missing-field backward compat
+
+### Changed
+- CSS checkmark rule now applies to both `#menu-wordwrap.on` and `#menu-startup.on`
+
+### Security
+- 175 total tests (153 lib + 14 integration + 8 property-based)
+
 ## 0.1.4 — 2026-05-15
 
 ### Added
