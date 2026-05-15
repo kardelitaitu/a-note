@@ -5,14 +5,19 @@ const titleText = document.getElementById("title-text");
 const btnPin = document.getElementById("btn-pin");
 const btnMin = document.getElementById("btn-minimize");
 const btnClose = document.getElementById("btn-close");
+const btnMenu = document.getElementById("btn-menu");
+const menuDropdown = document.getElementById("menu-dropdown");
+const menuWordwrap = document.getElementById("menu-wordwrap");
 
-let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true };
+let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false };
 
 async function loadConfig() {
   try {
     config = await invoke("load_config");
     editor.style.fontSize = config.font_size + "px";
+    editor.style.whiteSpace = config.word_wrap ? "pre-wrap" : "pre";
     applyPinState();
+    applyWordWrapState();
   } catch (e) {
     console.error("load_config failed:", e);
   }
@@ -20,6 +25,10 @@ async function loadConfig() {
 
 function applyPinState() {
   btnPin.className = config.always_on_top ? "active" : "inactive";
+}
+
+function applyWordWrapState() {
+  menuWordwrap.className = config.word_wrap ? "on" : "";
 }
 
 async function saveConfig() {
@@ -100,6 +109,32 @@ editor.addEventListener("dblclick", () => {
 
   editor.setSelectionRange(start, end);
   editor.scrollTop = scrollTop;
+});
+
+// Menu toggle
+btnMenu.addEventListener("click", (e) => {
+  e.stopPropagation();
+  menuDropdown.classList.toggle("open");
+});
+
+function closeMenu() {
+  menuDropdown.classList.remove("open");
+}
+
+// Word wrap toggle
+menuWordwrap.addEventListener("click", () => {
+  config.word_wrap = !config.word_wrap;
+  editor.style.whiteSpace = config.word_wrap ? "pre-wrap" : "pre";
+  applyWordWrapState();
+  saveConfig();
+  closeMenu();
+});
+
+// Close menu on click outside
+document.addEventListener("click", (e) => {
+  if (!document.getElementById("menu-area").contains(e.target)) {
+    closeMenu();
+  }
 });
 
 // Pin / always-on-top toggle

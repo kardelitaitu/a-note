@@ -10,6 +10,19 @@
     <textarea id="editor" spellcheck="false"></textarea>
     <div id="titlebar" data-tauri-drag-region>
       <span id="title-text"></span>
+      <div id="menu-area">
+        <button id="btn-menu" title="Menu">
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M2 3h8M2 6h8M2 9h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div id="menu-dropdown">
+          <button id="menu-wordwrap">
+            <span class="menu-check"></span>
+            <span>Word wrap</span>
+          </button>
+        </div>
+      </div>
       <button id="btn-pin" title="Always on top">
         <svg class="pin-icon pin-inactive" width="12" height="12" viewBox="0 0 32 32">
           <g transform="rotate(45 16 16)">
