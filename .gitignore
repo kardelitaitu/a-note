@@ -25,6 +25,9 @@ Thumbs.db
 # Reference app (original PowerShell/WPF implementation)
 this is the reference folder/
 
+# Planning / scratchpad
+TODO.md
+
 # AI agent instructions (not part of the project source)
 AGENTS.md
 
