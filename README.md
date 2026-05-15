@@ -2,17 +2,19 @@
 
 A fully portable, always-on-top sticky notes app for Windows — rewritten from PowerShell/WPF into Rust + Tauri.
 
-**Zero install. Zero dependencies.** Drop `notes.exe` anywhere, run it. Config (`sticky.config`) and notes (`sticky.notes`) live right next to it. Move the whole folder to another machine — your notes and window position travel with you.
+**Zero install. Zero dependencies. ~8 MB.** Drop `notes.exe` anywhere, run it. Config (`notes.config`) and notes (`notes.notes`) live right next to it. Rename the `.exe` to anything — the data files follow suit (`yourapp.config`, `yourapp.notes`). Move the whole folder to another machine — your notes and window position travel with you.
 
 ## Features
 
+- Single ~8 MB binary, no dependencies
 - Frameless, resizable, always-on-top window
 - Dark theme with monospace text
 - Plain text editing with auto-save (every 30s)
-- Window position, size, and font size persist across sessions
+- Window position, size, font size, and pin state persist across sessions
 - **Ctrl+Scroll** to zoom font size (8–72px)
 - **Double-click** a line to select it
-- Minimize and Close buttons in top-right corner
+- Pin toggle, minimize, and close buttons in top-right corner
+- Window title reflects the `.exe` filename — rename it freely
 
 ## Build
 

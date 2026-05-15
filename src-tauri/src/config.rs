@@ -24,6 +24,15 @@ impl Default for Config {
     }
 }
 
+fn exe_stem() -> String {
+    std::env::current_exe()
+        .expect("failed to get exe path")
+        .file_stem()
+        .expect("failed to get exe stem")
+        .to_string_lossy()
+        .to_string()
+}
+
 fn exe_dir() -> PathBuf {
     std::env::current_exe()
         .expect("failed to get exe path")
@@ -33,7 +42,7 @@ fn exe_dir() -> PathBuf {
 }
 
 fn config_path() -> PathBuf {
-    exe_dir().join("sticky.config")
+    exe_dir().join(format!("{}.config", exe_stem()))
 }
 
 pub fn load() -> Config {

@@ -19,9 +19,8 @@ Thumbs.db
 .env
 .env.local
 
-# Data files (auto-generated at runtime)
-sticky.config
-sticky.notes
+# Data files (auto-generated next to the exe, already covered by src-tauri/target/)
+# *.config and *.notes are intentionally NOT ignored globally — only the target/ directory
 
 # Reference app — stale binaries & runtime data
 this is the reference folder/Notes.exe
