@@ -17,6 +17,12 @@ pub struct Config {
     pub titlebar_color: String,
     #[serde(default = "default_fill")]
     pub titlebar_fill: u8,
+    #[serde(default)]
+    pub password_protected: bool,
+    #[serde(default)]
+    pub password_salt: String,
+    #[serde(default = "default_lock_timeout")]
+    pub lock_timeout_minutes: u32,
 }
 
 fn default_fill() -> u8 {
@@ -25,6 +31,10 @@ fn default_fill() -> u8 {
 
 fn default_theme() -> String {
     "dark".to_string()
+}
+
+fn default_lock_timeout() -> u32 {
+    10
 }
 
 impl Default for Config {
@@ -40,6 +50,9 @@ impl Default for Config {
             theme: default_theme(),
             titlebar_color: String::new(),
             titlebar_fill: default_fill(),
+            password_protected: false,
+            password_salt: String::new(),
+            lock_timeout_minutes: default_lock_timeout(),
         }
     }
 }
@@ -113,6 +126,9 @@ mod tests {
             theme: "light".to_string(),
             titlebar_color: "#ff6b6b".to_string(),
             titlebar_fill: 80,
+            password_protected: true,
+            password_salt: "aabbccdd".to_string(),
+            lock_timeout_minutes: 15,
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         let restored: Config = serde_json::from_str(&json).unwrap();
@@ -126,6 +142,9 @@ mod tests {
         assert_eq!(restored.theme, "light");
         assert_eq!(restored.titlebar_color, "#ff6b6b");
         assert_eq!(restored.titlebar_fill, 80);
+        assert!(restored.password_protected);
+        assert_eq!(restored.password_salt, "aabbccdd");
+        assert_eq!(restored.lock_timeout_minutes, 15);
     }
 
     #[test]
@@ -145,6 +164,9 @@ mod tests {
             theme: "light".to_string(),
             titlebar_color: "#3498db".to_string(),
             titlebar_fill: 90,
+            password_protected: true,
+            password_salt: "deadbeef".to_string(),
+            lock_timeout_minutes: 30,
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         crate::util::write(&path, &json);
@@ -160,6 +182,9 @@ mod tests {
         assert_eq!(restored.theme, "light");
         assert_eq!(restored.titlebar_color, "#3498db");
         assert_eq!(restored.titlebar_fill, 90);
+        assert!(restored.password_protected);
+        assert_eq!(restored.password_salt, "deadbeef");
+        assert_eq!(restored.lock_timeout_minutes, 30);
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -186,6 +211,15 @@ mod tests {
         let old_json = r#"{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true,"word_wrap":false}"#;
         let restored: Config = serde_json::from_str(old_json).unwrap();
         assert_eq!(restored.theme, "dark");
+    }
+
+    #[test]
+    fn test_password_defaults_when_missing() {
+        let old_json = r#"{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true,"word_wrap":false,"theme":"dark"}"#;
+        let restored: Config = serde_json::from_str(old_json).unwrap();
+        assert!(!restored.password_protected);
+        assert_eq!(restored.password_salt, "");
+        assert_eq!(restored.lock_timeout_minutes, 10);
     }
 
     #[test]
