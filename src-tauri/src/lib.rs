@@ -1,5 +1,6 @@
 pub mod config;
 pub mod crypto;
+pub mod diagnostics;
 pub mod note;
 pub mod util;
 
@@ -151,6 +152,7 @@ fn set_password(
         .map_err(|e| format!("lock error: {e}"))?;
     *key_guard = Some(key);
 
+    diagnostics::event("password", "Password set");
     Ok(())
 }
 
@@ -182,6 +184,7 @@ fn unlock(
         .map_err(|e| format!("lock error: {e}"))?;
     *key_guard = Some(key);
 
+    diagnostics::event("unlock", "Note unlocked");
     Ok(UnlockResult {
         ok: true,
         text: Some(decrypted.text),
@@ -198,6 +201,7 @@ fn lock(state: tauri::State<'_, AppState>) -> Result<(), String> {
         .lock()
         .map_err(|e| format!("lock error: {e}"))?;
     *key_guard = None;
+    diagnostics::event("lock", "Note locked");
     Ok(())
 }
 
@@ -235,6 +239,7 @@ fn remove_password(
         .map_err(|e| format!("lock error: {e}"))?;
     *key_guard = None;
 
+    diagnostics::event("password", "Password removed");
     Ok(())
 }
 
@@ -280,6 +285,7 @@ fn change_password(
         .map_err(|e| format!("lock error: {e}"))?;
     *key_guard = Some(new_key);
 
+    diagnostics::event("password", "Password changed");
     Ok(())
 }
 
@@ -293,6 +299,7 @@ fn get_app_name() -> String {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    diagnostics::init();
     tauri::Builder::default()
         .manage(AppState {
             encryption_key: Mutex::new(None),

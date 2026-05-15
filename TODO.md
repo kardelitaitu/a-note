@@ -108,15 +108,29 @@ Password-protect the note. Content is AES-encrypted in `sticky.notes`. After idl
 - [x] Unit: empty password derived key works (Argon2 accepts empty strings)
 - [x] Unit: config roundtrip with `password_protected`, `password_salt`, `lock_timeout_minutes`
 - [x] Unit: salt length is 16 bytes
-- [ ] Manual: set password → type → close → reopen → unlock → text matches
-- [ ] Manual: type → wait idle → blur + lock → enter password → restored, timer reset
-- [ ] Manual: "Lock now" → immediate blur
-- [ ] Manual: "Remove password" → note is no longer encrypted on disk
-- [ ] Manual: lock timeout slider → verify file saves with new value
+- [x] Manual: set password → type → close → reopen → unlock → text matches
+- [x] Manual: type → wait idle → blur + lock → enter password → restored, timer reset
+- [x] Manual: "Lock now" → immediate blur
+- [x] Manual: "Remove password" → note is no longer encrypted on disk
+- [x] Manual: lock timeout slider → verify file saves with new value
 
 ---
 
-### 7. Cloud sync (Google Drive)
+#### add font selection on the hamburger menu, it should at the bottom with submenu of selections
+we should keep the font on our codebase(maybe?). because this codebase is for cross platfrom
+Inter
+Roboto
+Open Sans
+JetBrains Mono
+Fira Code
+Cascadia Code
+Georgia
+Segoe UI
+Arial
+Source Code Pro
+
+---
+### 8. Cloud sync (Google Drive)
 
 **Difficulty:** Hard · **Estimate:** 12h · **Risk:** High
 
