@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.1.4">⬇ Download notes.exe (v0.1.4)</a>
+  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.1.5">⬇ Download notes.exe (v0.1.5)</a>
 </p>
 
 ---
@@ -52,7 +52,7 @@ Built with Rust + Tauri v2. No Electron. No bloat.
 
 ## Download
 
-**[⬇ Download notes.exe (v0.1.4)](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.4)**
+**[⬇ Download notes.exe (v0.1.5)](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.5)**
 
 No installation. No setup. Run it.
 

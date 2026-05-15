@@ -8,6 +8,7 @@
 - `set_start_with_windows` Tauri command + JS toggle handler with checkmark feedback
 - `get_startup_registry()` read-back function (validates key via `RegQueryValueExW`)
 - `start_with_windows` config field with `#[serde(default)]` for backward compat
+- Font preview on hover: hovering a font in the selection submenu temporarily applies it to the editor
 - 4 registry integration tests: set, read, disable, idempotency (serialized via Mutex)
 - 3 config tests: default false, JSON roundtrip, missing-field backward compat
 
