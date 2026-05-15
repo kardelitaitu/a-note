@@ -529,6 +529,12 @@ html, body {
   background: var(--menu-hover);
 }
 
+/* Submenu items (Theme, Titlebar color, Font) have an empty first span
+   as a spacer to align with .menu-check (14px). Give it minimum width. */
+#menu-dropdown button span:first-child {
+  min-width: 14px;
+}
+
 .menu-check {
   width: 14px;
   height: 14px;

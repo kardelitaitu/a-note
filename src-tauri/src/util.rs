@@ -143,7 +143,6 @@ pub fn get_startup_registry() -> Option<String> {
     const KEY_QUERY_VALUE: u32 = 0x0001;
     const REG_SZ: u32 = 1;
     const ERROR_SUCCESS: i32 = 0;
-    const ERROR_FILE_NOT_FOUND: i32 = 2;
 
     let sub_key: Vec<u16> = OsStr::new("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
         .encode_wide()
