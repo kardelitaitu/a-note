@@ -613,6 +613,10 @@ html, body {
   justify-content: center;
 }
 
+#menu-themes button .check-svg {
+  margin-left: auto;
+}
+
 #menu-themes button.active .check-svg {
   display: flex;
 }

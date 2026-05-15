@@ -58,8 +58,8 @@ function initThemes() {
     const btn = document.createElement("button");
     btn.dataset.theme = t.id;
     btn.innerHTML = `
-      <span class="check-svg"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>
-      <span>${t.label}</span>`;
+      <span>${t.label}</span>
+      <span class="check-svg"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>`;
     btn.addEventListener("click", () => {
       config.theme = t.id;
       applyTheme();
