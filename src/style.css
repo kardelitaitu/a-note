@@ -743,3 +743,163 @@ html, body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--scroll-thumb-hover);
 }
+
+/* ── Password lock overlay ───────────────────────────── */
+
+#lock-overlay,
+#pwd-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+#lock-close {
+  width: 28px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #ccc;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  transition: background 0.08s, color 0.08s;
+  flex-shrink: 0;
+  margin-right: -6px;
+  margin-top: -4px;
+}
+
+#lock-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+#lock-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#lock-overlay.hidden,
+#pwd-overlay.hidden {
+  display: none;
+}
+
+#lock-card,
+#pwd-card {
+  background: var(--menu-bg, #2a2a2a);
+  border: 1px solid var(--menu-border, #3a3a3a);
+  border-radius: 8px;
+  padding: 24px;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+#lock-title,
+#pwd-title {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: 'Segoe UI', sans-serif;
+  color: var(--menu-text, #d4d4d4);
+  text-align: center;
+}
+
+#lock-input,
+#pwd-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--menu-border, #3a3a3a);
+  border-radius: 4px;
+  background: var(--bg, #1e1e1e);
+  color: var(--text, #d4d4d4);
+  font-size: 14px;
+  font-family: 'Segoe UI', sans-serif;
+  outline: none;
+  box-sizing: border-box;
+}
+
+#lock-input:focus,
+#pwd-input:focus {
+  border-color: var(--pin-active, #ffd700);
+}
+
+#lock-submit,
+#pwd-confirm {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  background: var(--pin-active, #ffd700);
+  color: #000;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+#lock-submit:hover,
+#pwd-confirm:hover {
+  opacity: 0.85;
+}
+
+#lock-submit:active,
+#pwd-confirm:active {
+  opacity: 0.7;
+}
+
+#lock-error,
+#pwd-error {
+  font-size: 12px;
+  font-family: 'Segoe UI', sans-serif;
+  color: #e74c3c;
+  text-align: center;
+}
+
+#lock-error.hidden,
+#pwd-error.hidden {
+  display: none;
+}
+
+/* Editor locked state */
+#editor.locked {
+  filter: blur(3px);
+  pointer-events: none;
+}
+
+#pwd-actions {
+  display: flex;
+  gap: 8px;
+}
+
+#pwd-actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Segoe UI', sans-serif;
+  cursor: pointer;
+  transition: opacity 0.1s;
+}
+
+#pwd-cancel {
+  background: transparent;
+  color: var(--menu-text, #d4d4d4);
+  border: 1px solid var(--menu-border, #3a3a3a) !important;
+}
+
+#pwd-cancel:hover {
+  opacity: 0.8;
+}

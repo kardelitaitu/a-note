@@ -88,6 +88,41 @@
         </svg>
       </button>
     </div>
+    <!-- Password lock overlay -->
+    <div id="lock-overlay" class="hidden">
+      <div id="lock-card">
+        <div id="lock-card-header">
+          <span id="lock-title">Unlock</span>
+          <button id="lock-close" title="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <input type="password" id="lock-input" placeholder="Enter password" spellcheck="false" autocomplete="off" />
+        <button id="lock-submit">Unlock</button>
+        <div id="lock-error" class="hidden">Wrong password. Try again.</div>
+      </div>
+    </div>
+
+    <!-- Password setup overlay (used only by set/change/remove flows) -->
+    <div id="pwd-overlay" class="hidden">
+      <div id="pwd-card">
+        <div id="pwd-title">Set Password</div>
+        <input type="password" id="pwd-input" placeholder="Password" spellcheck="false" autocomplete="off" />
+        <div id="pwd-timeout-row" class="menu-slider-row">
+          <span>Auto-lock</span>
+          <input type="range" id="pwd-lock-timeout" min="0" max="60" value="5">
+          <span id="pwd-lock-timeout-label" class="menu-slider-pct">5m</span>
+        </div>
+        <div id="pwd-error" class="hidden"></div>
+        <div id="pwd-actions">
+          <button id="pwd-cancel">Cancel</button>
+          <button id="pwd-confirm">Set</button>
+        </div>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

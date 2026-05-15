@@ -10,6 +10,23 @@ const menuDropdown = document.getElementById("menu-dropdown");
 const menuWordwrap = document.getElementById("menu-wordwrap");
 let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false, theme: "dark", titlebar_color: "", titlebar_fill: 100 };
 
+// Lock state
+let decryptedText = "";
+let lockTimer = null;
+let isLocked = false;
+
+const lockOverlay = document.getElementById("lock-overlay");
+const lockInput = document.getElementById("lock-input");
+const lockSubmit = document.getElementById("lock-submit");
+const lockError = document.getElementById("lock-error");
+
+const pwdOverlay = document.getElementById("pwd-overlay");
+const pwdTitle = document.getElementById("pwd-title");
+const pwdInput = document.getElementById("pwd-input");
+const pwdError = document.getElementById("pwd-error");
+const pwdConfirm = document.getElementById("pwd-confirm");
+const pwdCancel = document.getElementById("pwd-cancel");
+
 const themes = [
   { id: "dark", label: "Dark" },
   { id: "dark-black", label: "Dark black" },
@@ -119,22 +136,36 @@ async function saveConfig() {
   }
 }
 
+// ── Note load / save ────────────────────────────────────────────────────
+
 async function loadNote() {
   try {
     const data = await invoke("load_note");
-    editor.value = data.text;
-    editor.focus();
-    const pos = Math.min(data.cursor_pos || 0, data.text.length);
-    setTimeout(() => {
-      editor.setSelectionRange(pos, pos);
-      editor.scrollTop = data.scroll_top || 0;
-    }, 0);
+    if (data.locked) {
+      // Note is encrypted — show lock overlay
+      isLocked = true;
+      editor.value = "";
+      editor.classList.add("locked");
+      showLockOverlay();
+    } else {
+      isLocked = false;
+      editor.classList.remove("locked");
+      editor.value = data.text || "";
+      editor.focus();
+      const pos = Math.min(data.cursor_pos || 0, (data.text || "").length);
+      setTimeout(() => {
+        editor.setSelectionRange(pos, pos);
+        editor.scrollTop = data.scroll_top || 0;
+      }, 0);
+      startLockTimer();
+    }
   } catch (e) {
     console.error("load_note failed:", e);
   }
 }
 
 async function saveNote() {
+  if (isLocked) return; // Don't save while locked
   try {
     await invoke("save_note", {
       note: {
@@ -153,6 +184,7 @@ let saveTimer;
 editor.addEventListener("input", () => {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNote, 5000);
+  resetLockTimer(); // Reset lock timer on user activity
 });
 
 // Ctrl+Scroll to zoom
@@ -191,7 +223,193 @@ editor.addEventListener("dblclick", () => {
   editor.scrollTop = scrollTop;
 });
 
-// Menu toggle
+// ── Lock overlay ────────────────────────────────────────────────────────
+
+function showLockOverlay() {
+  lockOverlay.classList.remove("hidden");
+  lockError.classList.add("hidden");
+  lockInput.value = "";
+  setTimeout(() => lockInput.focus(), 50);
+}
+
+function hideLockOverlay() {
+  lockOverlay.classList.add("hidden");
+  lockError.classList.add("hidden");
+}
+
+// Clicking anywhere on the lock overlay focuses the password input
+lockOverlay.addEventListener("click", () => {
+  lockInput.focus();
+});
+
+async function handleUnlock() {
+  const pwd = lockInput.value;
+  if (!pwd) return;
+
+  lockSubmit.disabled = true;
+  try {
+    const result = await invoke("unlock", { password: pwd });
+    if (result.ok) {
+      isLocked = false;
+      editor.classList.remove("locked");
+      editor.value = result.text || "";
+      decryptedText = result.text || "";
+      hideLockOverlay();
+      editor.focus();
+      const pos = Math.min(result.cursor_pos || 0, (result.text || "").length);
+      setTimeout(() => {
+        editor.setSelectionRange(pos, pos);
+        editor.scrollTop = result.scroll_top || 0;
+      }, 0);
+      startLockTimer();
+      updatePasswordMenuItems();
+    }
+  } catch (e) {
+    lockError.textContent = typeof e === "string" ? e : "Wrong password. Try again.";
+    lockError.classList.remove("hidden");
+    lockInput.value = "";
+    lockInput.focus();
+  } finally {
+    lockSubmit.disabled = false;
+  }
+}
+
+lockSubmit.addEventListener("click", handleUnlock);
+lockInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") handleUnlock();
+});
+
+// Close button on lock overlay — save config and close
+document.getElementById("lock-close").addEventListener("click", async () => {
+  await saveConfig();
+  const { getCurrentWindow } = await import("@tauri-apps/api/window");
+  await getCurrentWindow().close();
+});
+
+// ── Lock timer (Phase D) ──────────────────────────────────────────────────
+
+function startLockTimer() {
+  clearLockTimer();
+  if (!config.password_protected || isLocked) return;
+  const timeoutMs = (config.lock_timeout_minutes || 5) * 60 * 1000;
+  if (timeoutMs <= 0) return; // "Never" setting
+  lockTimer = setTimeout(() => {
+    lockNow();
+  }, timeoutMs);
+}
+
+function resetLockTimer() {
+  if (!config.password_protected || isLocked) return;
+  clearLockTimer();
+  startLockTimer();
+}
+
+function clearLockTimer() {
+  if (lockTimer) {
+    clearTimeout(lockTimer);
+    lockTimer = null;
+  }
+}
+
+async function lockNow() {
+  clearLockTimer();
+  decryptedText = "";
+  editor.value = "";
+  isLocked = true;
+  editor.classList.add("locked");
+  showLockOverlay();
+  try {
+    await invoke("lock");
+  } catch (e) {
+    console.error("lock failed:", e);
+  }
+}
+
+// ── Password setup overlay (set / change / remove) ──────────────────────
+
+let pwdMode = "";
+let pwdCallback = null;
+
+function showPwdOverlay(title, placeholder, mode, callback) {
+  pwdTitle.textContent = title;
+  pwdInput.placeholder = placeholder || "Password";
+  pwdMode = mode;
+  pwdCallback = callback;
+  pwdError.classList.add("hidden");
+  pwdError.textContent = "";
+  pwdInput.value = "";
+  pwdOverlay.classList.remove("hidden");
+
+  // Show/hide the auto-lock slider based on mode
+  const timeoutRow = document.getElementById("pwd-timeout-row");
+  if (mode === "remove") {
+    timeoutRow.style.display = "none";
+  } else {
+    timeoutRow.style.display = "flex";
+    // Sync slider with current config value
+    const slider = document.getElementById("pwd-lock-timeout");
+    slider.value = config.lock_timeout_minutes || 5;
+    document.getElementById("pwd-lock-timeout-label").textContent = lockTimeoutLabel(config.lock_timeout_minutes || 5);
+  }
+
+  setTimeout(() => pwdInput.focus(), 50);
+}
+
+function hidePwdOverlay() {
+  pwdOverlay.classList.add("hidden");
+  pwdMode = "";
+  pwdCallback = null;
+}
+
+pwdConfirm.addEventListener("click", async () => {
+  const pwd = pwdInput.value;
+  if (!pwd) {
+    pwdError.textContent = "Password cannot be empty.";
+    pwdError.classList.remove("hidden");
+    return;
+  }
+
+  pwdConfirm.disabled = true;
+  try {
+    if (pwdMode === "set") {
+      await invoke("set_password", { password: pwd });
+      config.password_protected = true;
+      updatePasswordMenuItems();
+      hidePwdOverlay();
+      startLockTimer();
+    } else if (pwdMode === "change") {
+      if (pwdCallback) pwdCallback(pwd);
+      hidePwdOverlay();
+    } else if (pwdMode === "remove") {
+      await invoke("remove_password", { password: pwd });
+      config.password_protected = false;
+      updatePasswordMenuItems();
+      clearLockTimer();
+      hidePwdOverlay();
+    }
+  } catch (e) {
+    pwdError.textContent = typeof e === "string" ? e : "Operation failed.";
+    pwdError.classList.remove("hidden");
+  } finally {
+    pwdConfirm.disabled = false;
+  }
+});
+
+pwdCancel.addEventListener("click", hidePwdOverlay);
+pwdInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") pwdConfirm.click();
+});
+
+// Lock timeout slider in password overlay
+document.getElementById("pwd-lock-timeout").addEventListener("input", (e) => {
+  const val = parseInt(e.target.value);
+  config.lock_timeout_minutes = val;
+  document.getElementById("pwd-lock-timeout-label").textContent = lockTimeoutLabel(val);
+  saveConfig();
+});
+
+// ── Hamburger menu ──────────────────────────────────────────────────────
+
 btnMenu.addEventListener("click", (e) => {
   e.stopPropagation();
   menuDropdown.classList.toggle("open");
@@ -314,12 +532,100 @@ async function trackWindow() {
   });
 }
 
-// Init
+// ── Password menu items (Phase E) ───────────────────────────────────────
+
+function initPasswordMenu() {
+  const menuMain = document.getElementById("menu-page-main");
+
+  // Separator before password section
+  const sep = document.createElement("div");
+  sep.className = "menu-sep";
+  sep.id = "menu-pwd-sep";
+  menuMain.appendChild(sep);
+
+  // Set/Change password
+  const btnSetPwd = document.createElement("button");
+  btnSetPwd.id = "menu-set-pwd";
+  btnSetPwd.innerHTML = `<span></span><span>Set password...</span>`;
+  btnSetPwd.addEventListener("click", () => {
+    closeMenu();
+    if (config.password_protected) {
+      // Change password flow
+      showPwdOverlay("Current password", "Current password", "change", async (oldPwd) => {
+        showPwdOverlay("New password", "New password", "set", async (newPwd) => {
+          try {
+            await invoke("change_password", { oldPwd, newPwd });
+            config.password_protected = true;
+            updatePasswordMenuItems();
+            startLockTimer();
+          } catch (e) {
+            pwdError.textContent = typeof e === "string" ? e : "Failed to change password.";
+            pwdError.classList.remove("hidden");
+          }
+        });
+      });
+    } else {
+      showPwdOverlay("Set password", "Password", "set", null);
+    }
+  });
+  menuMain.appendChild(btnSetPwd);
+
+  // Lock now
+  const btnLockNow = document.createElement("button");
+  btnLockNow.id = "menu-lock-now";
+  btnLockNow.innerHTML = `<span></span><span>Lock now</span>`;
+  btnLockNow.addEventListener("click", () => {
+    closeMenu();
+    lockNow();
+  });
+  menuMain.appendChild(btnLockNow);
+
+  // Remove password
+  const btnRemovePwd = document.createElement("button");
+  btnRemovePwd.id = "menu-remove-pwd";
+  btnRemovePwd.innerHTML = `<span></span><span>Remove password</span>`;
+  btnRemovePwd.addEventListener("click", () => {
+    closeMenu();
+    showPwdOverlay("Remove password", "Current password", "remove", null);
+  });
+  menuMain.appendChild(btnRemovePwd);
+
+  updatePasswordMenuItems();
+}
+
+function lockTimeoutLabel(minutes) {
+  if (minutes <= 0) return "Never";
+  if (minutes < 60) return minutes + "m";
+  return Math.floor(minutes / 60) + "h";
+}
+
+function updatePasswordMenuItems() {
+  const btnSetPwd = document.getElementById("menu-set-pwd");
+  const btnLockNow = document.getElementById("menu-lock-now");
+  const btnRemovePwd = document.getElementById("menu-remove-pwd");
+  const pwdSep = document.getElementById("menu-pwd-sep");
+
+  if (!btnSetPwd) return;
+
+  if (config.password_protected) {
+    btnSetPwd.innerHTML = `<span></span><span>Change password...</span>`;
+    btnLockNow.style.display = "flex";
+    btnRemovePwd.style.display = "flex";
+  } else {
+    btnSetPwd.innerHTML = `<span></span><span>Set password...</span>`;
+    btnLockNow.style.display = "none";
+    btnRemovePwd.style.display = "none";
+  }
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────
+
 (async () => {
   const name = await invoke("get_app_name");
   titleText.textContent = name;
 
   initThemes();
+  initPasswordMenu();
   await loadConfig();
   document.getElementById("titlebar-fill-slider").value = config.titlebar_fill;
   document.getElementById("titlebar-fill-value").textContent = config.titlebar_fill + "%";

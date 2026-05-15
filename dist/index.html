@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sticky Notes</title>
+    <script type="module" crossorigin src="/assets/index-xZC8V3Ne.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BtFEGtWO.css">
+  </head>
+  <body>
+    <textarea id="editor" spellcheck="false"></textarea>
+    <div id="titlebar" data-tauri-drag-region>
+      <span id="title-text"></span>
+      <div id="menu-area">
+        <button id="btn-menu" title="Menu">
+          <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M2 3h8M2 6h8M2 9h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
+        <div id="menu-dropdown">
+          <div id="menu-page-main">
+            <button id="menu-wordwrap">
+              <span class="menu-check"></span>
+              <span>Word wrap</span>
+            </button>
+            <div class="menu-sep"></div>
+            <button id="menu-theme-btn">
+              <span></span>
+              <span>Theme</span>
+              <span class="menu-arrow">&#9654;</span>
+            </button>
+            <button id="menu-titlebar-btn">
+              <span></span>
+              <span>Titlebar color</span>
+              <span class="menu-arrow">&#9654;</span>
+            </button>
+          </div>
+          <div id="menu-page-themes">
+            <button id="menu-theme-back">
+              <span class="menu-arrow">&#9664;</span>
+              <span>Back</span>
+            </button>
+            <div class="menu-sep"></div>
+            <div id="menu-themes"></div>
+          </div>
+          <div id="menu-page-titlebar">
+            <button id="menu-titlebar-back">
+              <span class="menu-arrow">&#9664;</span>
+              <span>Back</span>
+            </button>
+            <div class="menu-sep"></div>
+            <button id="menu-titlebar-default">Default</button>
+            <div class="menu-sep"></div>
+            <div class="menu-color-row" id="menu-color-row">
+              <span>Color</span>
+              <span id="titlebar-swatch"></span>
+            </div>
+            <input type="color" id="titlebar-color-picker" hidden>
+            <div class="menu-slider-row">
+              <span>Fill</span>
+              <input type="range" id="titlebar-fill-slider" min="0" max="100" value="100">
+              <span id="titlebar-fill-value" class="menu-slider-pct">100%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button id="btn-pin" title="Always on top">
+        <svg class="pin-icon pin-inactive" width="12" height="12" viewBox="0 0 32 32">
+          <g transform="rotate(45 16 16)">
+            <path d="M25,13c0,8-9,15-9,15s-9-7-9-15c0-5,4-9,9-9S25,8,25,13z" stroke="currentColor" stroke-width="2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="16" cy="13" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+          </g>
+        </svg>
+        <svg class="pin-icon pin-active" width="12" height="12" viewBox="0 0 32 32">
+          <g transform="rotate(45 16 16)">
+            <path d="M25,13c0,8-9,15-9,15s-9-7-9-15c0-5,4-9,9-9S25,8,25,13z" stroke="currentColor" stroke-width="2" fill="currentColor" stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="16" cy="13" r="3" stroke="currentColor" stroke-width="2" fill="currentColor"/>
+          </g>
+        </svg>
+      </button>
+      <button id="btn-minimize" title="Minimize">
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M2 5h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button id="btn-close" title="Close">
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+    <!-- Password lock overlay -->
+    <div id="lock-overlay" class="hidden">
+      <div id="lock-card">
+        <div id="lock-card-header">
+          <span id="lock-title">Unlock</span>
+          <button id="lock-close" title="Close">
+            <svg width="10" height="10" viewBox="0 0 10 10">
+              <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <input type="password" id="lock-input" placeholder="Enter password" spellcheck="false" autocomplete="off" />
+        <button id="lock-submit">Unlock</button>
+        <div id="lock-error" class="hidden">Wrong password. Try again.</div>
+      </div>
+    </div>
+
+    <!-- Password setup overlay (used only by set/change/remove flows) -->
+    <div id="pwd-overlay" class="hidden">
+      <div id="pwd-card">
+        <div id="pwd-title">Set Password</div>
+        <input type="password" id="pwd-input" placeholder="Password" spellcheck="false" autocomplete="off" />
+        <div id="pwd-timeout-row" class="menu-slider-row">
+          <span>Auto-lock</span>
+          <input type="range" id="pwd-lock-timeout" min="0" max="60" value="5">
+          <span id="pwd-lock-timeout-label" class="menu-slider-pct">5m</span>
+        </div>
+        <div id="pwd-error" class="hidden"></div>
+        <div id="pwd-actions">
+          <button id="pwd-cancel">Cancel</button>
+          <button id="pwd-confirm">Set</button>
+        </div>
+      </div>
+    </div>
+
+  </body>
+</html>

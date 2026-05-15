@@ -236,4 +236,79 @@ mod tests {
         let restored: Config = serde_json::from_str(old_json).unwrap();
         assert!(!restored.word_wrap);
     }
+
+    // ── Password config field persistence ──────────────────────────
+
+    #[test]
+    fn test_password_fields_persist_through_save_load() {
+        let dir = std::env::temp_dir().join(format!(
+            "a-note-test-config-pwd-persist-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("test.config");
+
+        let cfg = Config {
+            password_protected: true,
+            password_salt: "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6".to_string(),
+            lock_timeout_minutes: 15,
+            ..Config::default()
+        };
+
+        let json = serde_json::to_string_pretty(&cfg).unwrap();
+        crate::util::write(&path, &json);
+
+        let read_back = std::fs::read_to_string(&path).unwrap();
+        let restored: Config = serde_json::from_str(&read_back).unwrap();
+        assert!(restored.password_protected);
+        assert_eq!(restored.password_salt, "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6");
+        assert_eq!(restored.lock_timeout_minutes, 15);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_old_config_without_password_defaults() {
+        // Config saved before encryption feature existed — no password fields
+        let old_json = r#"{
+            "width": 400,
+            "height": 500,
+            "left": 50,
+            "top": 60,
+            "font_size": 16,
+            "always_on_top": true,
+            "word_wrap": false,
+            "theme": "dracula"
+        }"#;
+        let restored: Config = serde_json::from_str(old_json).unwrap();
+        assert!(!restored.password_protected);
+        assert_eq!(restored.password_salt, "");
+        assert_eq!(restored.lock_timeout_minutes, 10);
+    }
+
+    #[test]
+    fn test_password_fields_roundtrip_with_other_fields() {
+        let cfg = Config {
+            width: 800,
+            height: 600,
+            left: 100,
+            top: 200,
+            font_size: 20,
+            always_on_top: false,
+            word_wrap: true,
+            theme: "nord".to_string(),
+            titlebar_color: "#ff6b6b".to_string(),
+            titlebar_fill: 75,
+            password_protected: true,
+            password_salt: "deadbeef010203040506070809101112".to_string(),
+            lock_timeout_minutes: 30,
+        };
+        let json = serde_json::to_string_pretty(&cfg).unwrap();
+        let restored: Config = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.width, 800);
+        assert_eq!(restored.theme, "nord");
+        assert!(restored.password_protected);
+        assert_eq!(restored.password_salt, "deadbeef010203040506070809101112");
+        assert_eq!(restored.lock_timeout_minutes, 30);
+    }
 }

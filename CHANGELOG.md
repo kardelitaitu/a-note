@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.1.2 — 2026-05-15
+
+### Added
+- AES-256-GCM encryption for note content with Argon2id key derivation
+- Password protection: set, change, remove password via lock overlay
+- Auto-lock timer: configurable timeout (0–60 min, "Never" option), resets on edit
+- Lock screen with password prompt — auto-blurs editor 3px, click-to-focus input
+- Lock now button in hamburger menu (visible when password is set)
+- Set/Change password menu item (toggles label based on state)
+- Remove password menu item (visible when protected)
+- Close button (✕) on lock overlay to quit without unlocking
+- Key derivation salt + nonce stored as hex in config and notes file
+- Cached encryption key in app state (cleared on lock/close)
+- Config corruption auto-repair: missing salt resets password protection
+- `NoteFile` struct: unified on-disk format supporting encrypted and plaintext
+- Backward compatible with pre-0.1.2 `.notes` files (no migration needed)
+- Lock timeout slider in password setup dialog (not in hamburger menu)
+- Property-based tests via `proptest` (4 tests, 10 random cases each)
+- Integration test suite: full workflow, file I/O, re-encryption, tamper detection
+- 101 total unit + integration tests
+
+### Changed
+- `crypto::decrypt` validates nonce length (12 bytes) and returns Err instead of panicking
+- `unlock`, `remove_password`, `change_password` use `salt_from_config` helper with auto-repair
+- Lock overlay blur reduced 8px → 3px for better readability
+- `crypto`, `note`, `config`, `util` modules made public for integration testing
+
+### Security
+- AES-256-GCM with random 12-byte nonces (unique per encryption)
+- Argon2id key derivation with random 16-byte salt
+- GCM authentication tag prevents tampering (bit flips detected)
+- Key cached only in-memory, cleared on lock/close
+- Empty passwords rejected at command layer
+- Nonce uniqueness enforced: same plaintext + same key produces different ciphertext
+- Auth tag truncation and corruption detected
+- Invalid nonce lengths handled gracefully
+
 ## 0.1.1 — 2026-05-15
 
 ### Added
