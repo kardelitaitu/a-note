@@ -13,6 +13,7 @@
 
 ### Changed
 - CSS checkmark rule now applies to both `#menu-wordwrap.on` and `#menu-startup.on`
+- Hamburger menu reordered: Appearance (Theme, Titlebar color, Font) → Behavior toggles (Word wrap, Auto Start) → Security (password items)
 
 ### Security
 - 175 total tests (153 lib + 14 integration + 8 property-based)
