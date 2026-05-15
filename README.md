@@ -1,58 +1,57 @@
-# a-note
+<p align="center">
+  <img src="src-tauri/icons/128x128.png" width="96" height="96" alt="a-note">
+</p>
 
-A fully portable, always-on-top sticky notes app for Windows — rewritten from PowerShell/WPF into Rust + Tauri.
+<h1 align="center">a-note</h1>
 
-**Zero install. Zero dependencies. ~8 MB.** Drop `notes.exe` anywhere, run it. Config (`notes.config`) and notes (`notes.notes`) live right next to it. Rename the `.exe` to anything — the data files follow suit (`yourapp.config`, `yourapp.notes`). Move the whole folder to another machine — your notes and window position travel with you.
+<p align="center">
+  <strong>~8 MB · Zero install · Portable</strong>
+</p>
+
+<p align="center">
+  A sticky notes app for Windows that lives in a single `.exe` — no installers, no dependencies, no config files scattered across your system.
+</p>
+
+<p align="center">
+  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.1.0">⬇ Download notes.exe</a>
+</p>
+
+---
+
+**Drop it anywhere, run it.** Config and notes save right next to the `.exe` (`notes.config` + `notes.notes`). Rename the file to anything — data files follow. Move the folder to another machine and everything goes with you: notes, window position, font size, pin state.
+
+Built with Rust + Tauri. No Electron. No bloat.
 
 ## Features
 
-- Single ~8 MB binary, no dependencies
-- Frameless, resizable, always-on-top window
-- Dark theme with monospace text
-- Plain text editing with auto-save (every 30s)
-- Window position, size, font size, and pin state persist across sessions
-- **Ctrl+Scroll** to zoom font size (8–72px)
-- **Double-click** a line to select it
-- Pin toggle, minimize, and close buttons in top-right corner
-- Window title reflects the `.exe` filename — rename it freely
+| | |
+|---|---|
+| 📌 **Always on top** | Toggle pin to keep the window above everything |
+| ⌨️ **Ctrl+Scroll** | Zoom font size 8–72px in real time |
+| 💾 **Auto-save** | Every 30 seconds — never lose a thought |
+| 🖱️ **Double-click** | Selects the entire line, preserves scroll position |
+| 🪟 **Frameless** | Dark theme, clean monospace editor, slim scrollbar |
+| 📁 **Portable** | One `.exe`, two data files. Move anywhere. |
+| 🏷️ **Smart title** | Title bar shows the `.exe` filename — rename freely |
+| 🔒 **Hidden-safe** | Files keep their hidden attribute when rewritten |
 
-## Build
+## Download
+
+[⬇ Download notes.exe (v0.1.0)](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.0)
+
+No installation. No setup. Run it.
+
+## Build from source
 
 ```powershell
-# Install Tauri CLI (one-time)
 cargo install tauri-cli --version "^2"
-
-# Dev mode (hot-reload)
-cargo tauri dev
-
-# Production build — outputs to src-tauri/target/release/notes.exe
 cargo tauri build
+# Output: src-tauri/target/release/notes.exe
 ```
 
-## Project Structure
+## Stack
 
-```
-├── src/                    # Frontend (vanilla JS)
-│   ├── main.js
-│   └── style.css
-├── src-tauri/              # Rust + Tauri backend
-│   ├── src/
-│   │   ├── main.rs         # Entry point
-│   │   ├── lib.rs          # Tauri commands + setup
-│   │   ├── config.rs       # sticky.config read/write
-│   │   └── note.rs         # sticky.notes read/write
-│   ├── capabilities/       # Tauri v2 permissions
-│   ├── icons/
-│   ├── Cargo.toml
-│   └── tauri.conf.json
-├── index.html
-├── package.json
-└── vite.config.js
-```
-
-## Reference
-
-The original PowerShell/WPF implementation is in `this is the reference folder/`.
+**Backend:** Rust + Tauri v2 · **Frontend:** Vanilla JS + Vite · **Persistence:** JSON files next to the `.exe`
 
 ## License
 
