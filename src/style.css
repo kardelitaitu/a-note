@@ -15,7 +15,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.12);
   --pin-active: #ffd700;
   --pin-hover-bg: rgba(255, 215, 0, 0.12);
-  --title-text: rgba(255, 255, 255, 0.35);
+  --title-text: rgba(255, 255, 255, 0.8);
   --title-sep: rgba(255, 255, 255, 0.06);
   --menu-bg: #2a2a2a;
   --menu-border: #3a3a3a;
@@ -40,7 +40,7 @@
   --btn-active-bg: rgba(0, 0, 0, 0.10);
   --pin-active: #d4a800;
   --pin-hover-bg: rgba(212, 168, 0, 0.12);
-  --title-text: rgba(0, 0, 0, 0.35);
+  --title-text: rgba(0, 0, 0, 0.8);
   --title-sep: rgba(0, 0, 0, 0.08);
   --menu-bg: #ffffff;
   --menu-border: #d0d0d0;
@@ -65,7 +65,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.12);
   --pin-active: #ffd700;
   --pin-hover-bg: rgba(255, 215, 0, 0.12);
-  --title-text: rgba(255, 255, 255, 0.30);
+  --title-text: rgba(255, 255, 255, 0.8);
   --title-sep: rgba(255, 255, 255, 0.05);
   --menu-bg: #111111;
   --menu-border: #333333;
@@ -90,7 +90,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.11);
   --pin-active: #5dade2;
   --pin-hover-bg: rgba(93, 173, 226, 0.15);
-  --title-text: rgba(200, 216, 232, 0.35);
+  --title-text: rgba(200, 216, 232, 0.8);
   --title-sep: rgba(200, 216, 232, 0.08);
   --menu-bg: #152238;
   --menu-border: #1e3350;
@@ -115,7 +115,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.11);
   --pin-active: #e8c088;
   --pin-hover-bg: rgba(232, 192, 136, 0.15);
-  --title-text: rgba(212, 196, 176, 0.35);
+  --title-text: rgba(212, 196, 176, 0.8);
   --title-sep: rgba(212, 196, 176, 0.08);
   --menu-bg: #2a1a10;
   --menu-border: #3a2818;
@@ -140,7 +140,7 @@
   --btn-active-bg: rgba(0, 0, 0, 0.09);
   --pin-active: #3a7bd5;
   --pin-hover-bg: rgba(58, 123, 213, 0.12);
-  --title-text: rgba(26, 26, 46, 0.30);
+  --title-text: rgba(26, 26, 46, 0.8);
   --title-sep: rgba(0, 0, 0, 0.06);
   --menu-bg: #ffffff;
   --menu-border: #c8d4e8;
@@ -165,7 +165,7 @@
   --btn-active-bg: rgba(0, 0, 0, 0.09);
   --pin-active: #d4802a;
   --pin-hover-bg: rgba(212, 128, 42, 0.12);
-  --title-text: rgba(42, 26, 10, 0.30);
+  --title-text: rgba(42, 26, 10, 0.8);
   --title-sep: rgba(0, 0, 0, 0.06);
   --menu-bg: #ffffff;
   --menu-border: #e0d0c0;
@@ -190,7 +190,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.11);
   --pin-active: #ff79c6;
   --pin-hover-bg: rgba(255, 121, 198, 0.15);
-  --title-text: rgba(248, 248, 242, 0.35);
+  --title-text: rgba(248, 248, 242, 0.8);
   --title-sep: rgba(248, 248, 242, 0.08);
   --menu-bg: #383a4a;
   --menu-border: #4a4b5a;
@@ -215,7 +215,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.11);
   --pin-active: #fd971f;
   --pin-hover-bg: rgba(253, 151, 31, 0.15);
-  --title-text: rgba(248, 248, 242, 0.35);
+  --title-text: rgba(248, 248, 242, 0.8);
   --title-sep: rgba(248, 248, 242, 0.08);
   --menu-bg: #383830;
   --menu-border: #4a4a40;
@@ -240,7 +240,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.11);
   --pin-active: #bf616a;
   --pin-hover-bg: rgba(191, 97, 106, 0.15);
-  --title-text: rgba(216, 222, 233, 0.35);
+  --title-text: rgba(216, 222, 233, 0.8);
   --title-sep: rgba(216, 222, 233, 0.08);
   --menu-bg: #3b4252;
   --menu-border: #4c566a;
@@ -265,7 +265,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.11);
   --pin-active: #b58900;
   --pin-hover-bg: rgba(181, 137, 0, 0.15);
-  --title-text: rgba(131, 148, 150, 0.40);
+  --title-text: rgba(131, 148, 150, 0.8);
   --title-sep: rgba(131, 148, 150, 0.08);
   --menu-bg: #073642;
   --menu-border: #586e75;
@@ -290,7 +290,7 @@
   --btn-active-bg: rgba(0, 0, 0, 0.09);
   --pin-active: #b58900;
   --pin-hover-bg: rgba(181, 137, 0, 0.12);
-  --title-text: rgba(101, 123, 131, 0.35);
+  --title-text: rgba(101, 123, 131, 0.8);
   --title-sep: rgba(0, 0, 0, 0.06);
   --menu-bg: #fffcf0;
   --menu-border: #d5cfbe;
@@ -315,7 +315,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.11);
   --pin-active: #fe8019;
   --pin-hover-bg: rgba(254, 128, 25, 0.15);
-  --title-text: rgba(235, 219, 178, 0.35);
+  --title-text: rgba(235, 219, 178, 0.8);
   --title-sep: rgba(235, 219, 178, 0.08);
   --menu-bg: #3c3836;
   --menu-border: #504945;
@@ -340,7 +340,7 @@
   --btn-active-bg: rgba(0, 0, 0, 0.09);
   --pin-active: #d79921;
   --pin-hover-bg: rgba(215, 153, 33, 0.12);
-  --title-text: rgba(60, 56, 54, 0.30);
+  --title-text: rgba(60, 56, 54, 0.8);
   --title-sep: rgba(0, 0, 0, 0.06);
   --menu-bg: #fff9e8;
   --menu-border: #d5c4a1;
@@ -365,7 +365,7 @@
   --btn-active-bg: rgba(255, 255, 255, 0.11);
   --pin-active: #f5c2e7;
   --pin-hover-bg: rgba(245, 194, 231, 0.15);
-  --title-text: rgba(205, 214, 244, 0.35);
+  --title-text: rgba(205, 214, 244, 0.8);
   --title-sep: rgba(205, 214, 244, 0.08);
   --menu-bg: #313244;
   --menu-border: #45475a;
