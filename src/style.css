@@ -546,39 +546,80 @@ html, body {
   color: var(--check-mark);
 }
 
+/* Menu pages */
+#menu-page-themes {
+  display: none;
+}
+
+#menu-dropdown.show-themes #menu-page-main {
+  display: none;
+}
+
+#menu-dropdown.show-themes #menu-page-themes {
+  display: block;
+}
+
+.menu-arrow {
+  margin-left: auto;
+  font-size: 8px;
+  opacity: 0.5;
+}
+
+#menu-theme-btn span:first-child {
+  width: 14px;
+  flex-shrink: 0;
+}
+
+#menu-theme-back span:first-child {
+  width: 14px;
+  flex-shrink: 0;
+  text-align: center;
+}
+
 .menu-sep {
   height: 1px;
   background: var(--menu-border);
   margin: 4px 8px;
 }
 
-.menu-label {
-  padding: 4px 12px;
-  font-size: 10px;
-  font-family: 'Segoe UI', sans-serif;
-  color: var(--check-border);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  pointer-events: none;
+.menu-check {
+  width: 14px;
+  height: 14px;
+  border: 1.2px solid var(--check-border);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+#menu-wordwrap.on .menu-check::after {
+  content: '✓';
+  font-size: 11px;
+  color: var(--check-mark);
 }
 
 #menu-themes button {
-  padding-left: 20px;
+  gap: 4px;
+  padding-left: 8px;
 }
 
-#menu-themes button .menu-check {
+.check-svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
   display: none;
+  align-items: center;
+  justify-content: center;
 }
 
-#menu-themes button.active .menu-check {
+#menu-themes button.active .check-svg {
   display: flex;
 }
 
-#theme-icon {
-  display: inline-block;
-  width: 14px;
-  text-align: center;
-  font-size: 12px;
+.check-svg svg {
+  width: 10px;
+  height: 10px;
 }
 
 #titlebar::after {

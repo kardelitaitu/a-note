@@ -57,7 +57,9 @@ function initThemes() {
   themes.forEach((t) => {
     const btn = document.createElement("button");
     btn.dataset.theme = t.id;
-    btn.innerHTML = `<span class="menu-check"></span><span>${t.label}</span>`;
+    btn.innerHTML = `
+      <span class="check-svg"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>
+      <span>${t.label}</span>`;
     btn.addEventListener("click", () => {
       config.theme = t.id;
       applyTheme();
@@ -156,11 +158,22 @@ editor.addEventListener("dblclick", () => {
 btnMenu.addEventListener("click", (e) => {
   e.stopPropagation();
   menuDropdown.classList.toggle("open");
+  menuDropdown.classList.remove("show-themes");
 });
 
 function closeMenu() {
   menuDropdown.classList.remove("open");
+  menuDropdown.classList.remove("show-themes");
 }
+
+// Theme submenu navigation
+document.getElementById("menu-theme-btn").addEventListener("click", () => {
+  menuDropdown.classList.add("show-themes");
+});
+
+document.getElementById("menu-theme-back").addEventListener("click", () => {
+  menuDropdown.classList.remove("show-themes");
+});
 
 // Word wrap toggle
 menuWordwrap.addEventListener("click", () => {
