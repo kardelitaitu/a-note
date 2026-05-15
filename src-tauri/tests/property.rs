@@ -134,4 +134,34 @@ proptest! {
         assert_eq!(restored.cursor_pos, note.cursor_pos);
         assert_eq!(restored.scroll_top, note.scroll_top);
     }
+
+    // ── NoteFile encrypted → JSON → deserialize → decrypt ──────────
+    //
+    // Creating a NoteFile via from_encrypted, serializing to JSON,
+    // deserializing, and decrypting must return the original text.
+    #[test]
+    fn prop_notefile_json_roundtrip(text: String) {
+        let salt = sticky_notes_lib::crypto::generate_salt();
+        let key = sticky_notes_lib::crypto::derive_key("prop-nf-json", &salt).unwrap();
+
+        let note = sticky_notes_lib::note::Note {
+            text,
+            cursor_pos: 42,
+            scroll_top: 99,
+        };
+
+        let nf = sticky_notes_lib::note::NoteFile::from_encrypted(&note, &key).unwrap();
+        let json = serde_json::to_string(&nf).unwrap();
+        let restored: sticky_notes_lib::note::NoteFile =
+            serde_json::from_str(&json).unwrap();
+
+        assert!(restored.encrypted);
+        assert_eq!(restored.cursor_pos, 42);
+        assert_eq!(restored.scroll_top, 99);
+
+        let decrypted = restored.decrypt_to_note(&key).unwrap();
+        assert_eq!(decrypted.text, note.text);
+        assert_eq!(decrypted.cursor_pos, 42);
+        assert_eq!(decrypted.scroll_top, 99);
+    }
 }

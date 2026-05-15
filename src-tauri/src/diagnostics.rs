@@ -132,6 +132,20 @@ mod tests {
     }
 
     #[test]
+    fn test_init_clears_log_and_does_not_panic() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        // init() clears the log file, writes a startup event
+        init();
+        let dir = exe_dir();
+        let stem = exe_stem();
+        let path = dir.join(format!("{stem}.log"));
+        let content = std::fs::read_to_string(&path).unwrap_or_default();
+        // After init, the log should contain at least a startup event
+        assert!(content.contains("startup"), "init should write a startup event");
+        assert!(content.contains("Application started"));
+    }
+
+    #[test]
     fn test_log_rotation() {
         let _lock = DIAG_LOCK.lock().unwrap();
         let dir = exe_dir();

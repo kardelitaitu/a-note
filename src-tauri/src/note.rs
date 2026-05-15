@@ -1270,4 +1270,59 @@ mod tests {
         assert!(!json.contains("nonce_hex"));
         assert!(!json.contains("ciphertext_hex"));
     }
+
+    #[test]
+    fn test_unencrypted_decrypt_preserves_all_fields() {
+        let nf = NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: "preserve me".to_string(),
+            cursor_pos: 1234,
+            scroll_top: 5678,
+        };
+        let note = nf.decrypt_to_note(&[0u8; 32]).unwrap();
+        assert_eq!(note.text, "preserve me");
+        assert_eq!(note.cursor_pos, 1234);
+        assert_eq!(note.scroll_top, 5678);
+    }
+
+    #[test]
+    fn test_encrypted_roundtrip_preserves_cursor_scroll() {
+        let note = Note {
+            text: "cursor preserved".to_string(),
+            cursor_pos: 999,
+            scroll_top: 888,
+        };
+        let key = [0xABu8; 32];
+        let nf = NoteFile::from_encrypted(&note, &key).unwrap();
+        assert_eq!(nf.cursor_pos, 999);
+        assert_eq!(nf.scroll_top, 888);
+        assert!(nf.encrypted);
+        // Decrypt and check
+        let restored = nf.decrypt_to_note(&key).unwrap();
+        assert_eq!(restored.text, "cursor preserved");
+        assert_eq!(restored.cursor_pos, 999);
+        assert_eq!(restored.scroll_top, 888);
+    }
+
+    #[test]
+    fn test_notefile_serialization_deserialization_full() {
+        let note = Note {
+            text: "serialize me".to_string(),
+            cursor_pos: 7,
+            scroll_top: 3,
+        };
+        let key = [0x42u8; 32];
+        let nf = NoteFile::from_encrypted(&note, &key).unwrap();
+        let json = serde_json::to_string(&nf).unwrap();
+        let restored: NoteFile = serde_json::from_str(&json).unwrap();
+        assert!(restored.encrypted);
+        assert!(restored.nonce_hex.is_some());
+        assert!(restored.ciphertext_hex.is_some());
+        assert_eq!(restored.cursor_pos, 7);
+        assert_eq!(restored.scroll_top, 3);
+        let decrypted = restored.decrypt_to_note(&key).unwrap();
+        assert_eq!(decrypted.text, "serialize me");
+    }
 }

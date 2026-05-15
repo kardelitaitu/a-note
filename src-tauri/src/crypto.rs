@@ -419,4 +419,36 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("nonce"));
     }
+
+    // ── Derive key edge cases ───────────────────────────────────────
+
+    #[test]
+    fn test_derive_key_empty_salt_fails() {
+        let result = derive_key("password", &[]);
+        assert!(result.is_err(), "empty salt should fail");
+    }
+
+    #[test]
+    fn test_derive_key_short_salt_fails() {
+        // Argon2 requires at least 8 bytes of salt
+        let result = derive_key("password", &[0u8; 4]);
+        assert!(result.is_err(), "4-byte salt should fail");
+    }
+
+    #[test]
+    fn test_derive_key_minimal_salt_works() {
+        // Argon2 minimum salt length is 8 bytes
+        let result = derive_key("password", &[0xABu8; 8]);
+        assert!(result.is_ok(), "8-byte salt should work");
+        assert_eq!(result.unwrap().len(), 32);
+    }
+
+    #[test]
+    fn test_derive_key_oversized_salt_works() {
+        // Argon2 accepts salts longer than 16 bytes
+        let salt = [0xCDu8; 64];
+        let result = derive_key("password", &salt);
+        assert!(result.is_ok(), "64-byte salt should work");
+        assert_eq!(result.unwrap().len(), 32);
+    }
 }

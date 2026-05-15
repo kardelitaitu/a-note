@@ -268,4 +268,33 @@ mod tests {
         assert_eq!((31 * 32 * 4 + 3) as usize, 3971);
         assert_eq!(bytes[3971], 0, "corner should be transparent");
     }
+
+    // ── Anti-aliasing edge ────────────────────────────────────────
+
+    #[test]
+    fn test_generate_icon_edge_pixel_partial_alpha() {
+        // Pixels at the edge of the circle (distance ~14) should have
+        // alpha between 0 and 200 to verify anti-aliasing.
+        let img = generate_colored_icon("#ff0000").unwrap();
+        let bytes = img.rgba();
+        // edge pixel: (16+13, 16) = (29, 16) → distance 13 → partial alpha
+        // At distance 13 from center (radius 14), alpha = (14-13)/1.5 ≈ 0.667
+        let idx = ((16 * 32 + 29) * 4) as usize;
+        let alpha = bytes[idx + 3];
+        assert!(
+            alpha > 0 && alpha < 200,
+            "edge pixel should have partial alpha, got {}",
+            alpha
+        );
+    }
+
+    #[test]
+    fn test_generate_icon_far_outside_transparent() {
+        // Pixel far from center should be fully transparent
+        let img = generate_colored_icon("#00ff00").unwrap();
+        let bytes = img.rgba();
+        // (31, 31) — farthest corner from center (16,16)
+        let idx = ((31 * 32 + 31) * 4) as usize;
+        assert_eq!(bytes[idx + 3], 0, "far corner should be transparent");
+    }
 }

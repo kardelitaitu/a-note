@@ -367,3 +367,100 @@ pub fn run() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── salt_from_config ──────────────────────────────────────────
+
+    #[test]
+    fn test_salt_from_config_ok() {
+        let hex_salt = "deadbeef010203040506070809101112";
+        let cfg = config::Config {
+            password_salt: hex_salt.to_string(),
+            ..config::Config::default()
+        };
+        let result = salt_from_config(&cfg);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), hex::decode(hex_salt).unwrap());
+    }
+
+    #[test]
+    fn test_salt_from_config_ok_full_salt() {
+        let hex_salt = "aabbccddee00112233445566778899ff";
+        let cfg = config::Config {
+            password_salt: hex_salt.to_string(),
+            ..config::Config::default()
+        };
+        let result = salt_from_config(&cfg);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), hex::decode(hex_salt).unwrap());
+    }
+
+    #[test]
+    fn test_salt_from_config_uppercase_hex() {
+        let hex_salt = "DEADBEEF01020304";
+        let cfg = config::Config {
+            password_salt: hex_salt.to_string(),
+            ..config::Config::default()
+        };
+        let result = salt_from_config(&cfg);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), hex::decode(hex_salt).unwrap());
+    }
+
+    // ── get_app_name ──────────────────────────────────────────────
+
+    #[test]
+    fn test_get_app_name_not_empty() {
+        let name = get_app_name();
+        assert!(!name.is_empty(), "app name should not be empty");
+    }
+
+    // ── LoadNoteResult ────────────────────────────────────────────
+
+    #[test]
+    fn test_load_note_result_locked() {
+        let res = LoadNoteResult {
+            locked: true,
+            text: None,
+            cursor_pos: Some(5),
+            scroll_top: Some(10),
+        };
+        let json = serde_json::to_string(&res).unwrap();
+        assert!(json.contains("\"locked\":true"));
+        assert!(!json.contains("\"text\""));
+    }
+
+    #[test]
+    fn test_load_note_result_unlocked() {
+        let res = LoadNoteResult {
+            locked: false,
+            text: Some("hello".to_string()),
+            cursor_pos: Some(3),
+            scroll_top: Some(0),
+        };
+        let json = serde_json::to_string(&res).unwrap();
+        assert!(json.contains("\"locked\":false"));
+        assert!(json.contains("\"text\":\"hello\""));
+    }
+
+    // ── UnlockResult ──────────────────────────────────────────────
+
+    #[test]
+    fn test_unlock_result_serialization() {
+        let res = UnlockResult {
+            ok: true,
+            text: Some("secret note".to_string()),
+            cursor_pos: 42,
+            scroll_top: 7,
+        };
+        let json = serde_json::to_string(&res).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(parsed["ok"], true);
+        assert_eq!(parsed["text"], "secret note");
+        assert_eq!(parsed["cursor_pos"], 42);
+        assert_eq!(parsed["scroll_top"], 7);
+    }
+}
