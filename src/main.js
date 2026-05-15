@@ -12,10 +12,6 @@ async function loadConfig() {
   try {
     config = await invoke("load_config");
     editor.style.fontSize = config.font_size + "px";
-    const { getCurrentWindow, LogicalPosition, LogicalSize } = await import("@tauri-apps/api/window");
-    const win = getCurrentWindow();
-    await win.setPosition(new LogicalPosition(config.left, config.top));
-    await win.setSize(new LogicalSize(config.width, config.height));
     applyPinState();
   } catch (e) {
     console.error("load_config failed:", e);
