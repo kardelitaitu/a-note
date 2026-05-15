@@ -46,6 +46,7 @@ html, body {
   justify-content: flex-end;
   z-index: 10;
   cursor: grab;
+  background: #1e1e1e;
 }
 
 #title-text {

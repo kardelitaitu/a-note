@@ -28,7 +28,7 @@ Built with Rust + Tauri. No Electron. No bloat.
 |---|---|
 | 📌 **Always on top** | Toggle pin to keep the window above everything |
 | ⌨️ **Ctrl+Scroll** | Zoom font size 8–72px in real time |
-| 💾 **Auto-save** | Every 30 seconds — never lose a thought |
+| 💾 **Auto-save** | 5s after you stop typing, also on minimize/close/pin toggle |
 | 🖱️ **Double-click** | Selects the entire line, preserves scroll position |
 | 🪟 **Frameless** | Dark theme, clean monospace editor, slim scrollbar |
 | 📁 **Portable** | One `.exe`, two data files. Move anywhere. |
