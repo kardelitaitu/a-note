@@ -18,6 +18,14 @@ const themes = [
   { id: "dark-choco", label: "Dark choco" },
   { id: "light-blue", label: "Light blue" },
   { id: "light-orange", label: "Light orange" },
+  { id: "dracula", label: "Dracula" },
+  { id: "monokai", label: "Monokai" },
+  { id: "nord", label: "Nord" },
+  { id: "solarized-dark", label: "Solarized dark" },
+  { id: "solarized-light", label: "Solarized light" },
+  { id: "gruvbox-dark", label: "Gruvbox dark" },
+  { id: "gruvbox-light", label: "Gruvbox light" },
+  { id: "catppuccin", label: "Catppuccin" },
 ];
 
 async function loadConfig() {
