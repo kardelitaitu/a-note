@@ -11,7 +11,7 @@
   "app": {
     "windows": [
       {
-        "title": "",
+        "title": "Sticky Notes",
         "width": 300,
         "height": 400,
         "decorations": false,

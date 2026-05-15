@@ -327,6 +327,12 @@ pub fn run() {
                 let _ = window.set_background_color(Some(Color(30, 30, 30, 255)));
                 let _ = window.show();
                 let _ = window.set_focus();
+                // Set taskbar title to match exe filename
+                let exe_name = std::env::current_exe()
+                    .ok()
+                    .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
+                    .unwrap_or_else(|| "Notes".to_string());
+                let _ = window.set_title(&exe_name);
             }
             Ok(())
         })
