@@ -12,20 +12,20 @@ let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, alwa
 
 const themes = [
   { id: "dark", label: "Dark" },
-  { id: "light", label: "Light" },
   { id: "dark-black", label: "Dark black" },
   { id: "dark-blue", label: "Dark blue" },
   { id: "dark-choco", label: "Dark choco" },
-  { id: "light-blue", label: "Light blue" },
-  { id: "light-orange", label: "Light orange" },
   { id: "dracula", label: "Dracula" },
   { id: "monokai", label: "Monokai" },
   { id: "nord", label: "Nord" },
   { id: "solarized-dark", label: "Solarized dark" },
-  { id: "solarized-light", label: "Solarized light" },
   { id: "gruvbox-dark", label: "Gruvbox dark" },
-  { id: "gruvbox-light", label: "Gruvbox light" },
   { id: "catppuccin", label: "Catppuccin" },
+  { id: "solarized-light", label: "Solarized light" },
+  { id: "gruvbox-light", label: "Gruvbox light" },
+  { id: "light-blue", label: "Light blue" },
+  { id: "light-orange", label: "Light orange" },
+  { id: "light", label: "Light" },
 ];
 
 async function loadConfig() {
