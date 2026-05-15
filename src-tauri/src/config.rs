@@ -59,6 +59,6 @@ pub fn load() -> Config {
 
 pub fn save(config: &Config) {
     if let Ok(json) = serde_json::to_string_pretty(config) {
-        let _ = std::fs::write(config_path(), json);
+        crate::util::write(&config_path(), &json);
     }
 }

@@ -1,5 +1,6 @@
 mod config;
 mod note;
+mod util;
 
 use tauri::Manager;
 

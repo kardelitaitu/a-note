@@ -44,6 +44,6 @@ pub fn save(text: &str) {
     if let Ok(json) = serde_json::to_string_pretty(&Note {
         text: text.to_string(),
     }) {
-        let _ = std::fs::write(note_path(), json);
+        crate::util::write(&note_path(), &json);
     }
 }
