@@ -60,8 +60,22 @@ function applyTitlebarColor() {
     const b = parseInt(config.titlebar_color.slice(5, 7), 16);
     const a = (config.titlebar_fill || 100) / 100;
     document.body.style.setProperty("--titlebar-bg", `rgba(${r},${g},${b},${a})`);
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    const isLight = lum > 140;
+    document.body.style.setProperty("--title-text", isLight ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.4)");
+    document.body.style.setProperty("--btn-color", isLight ? "#555" : "#b3b3b3");
+    document.body.style.setProperty("--btn-hover-text", isLight ? "#000" : "#fff");
+    document.body.style.setProperty("--btn-hover-bg", isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.08)");
+    document.body.style.setProperty("--btn-active-bg", isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.12)");
+    document.body.style.setProperty("--title-sep", isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.06)");
   } else {
     document.body.style.removeProperty("--titlebar-bg");
+    document.body.style.removeProperty("--title-text");
+    document.body.style.removeProperty("--btn-color");
+    document.body.style.removeProperty("--btn-hover-text");
+    document.body.style.removeProperty("--btn-hover-bg");
+    document.body.style.removeProperty("--btn-active-bg");
+    document.body.style.removeProperty("--title-sep");
   }
   const swatch = document.getElementById("titlebar-swatch");
   if (swatch) {
