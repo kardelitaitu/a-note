@@ -133,6 +133,84 @@ pub fn set_startup_registry(enabled: bool) {
 #[cfg(not(windows))]
 pub fn set_startup_registry(_enabled: bool) {}
 
+/// Read back the current auto-start registry value.
+/// Returns `Some(path)` if the key exists, `None` if unset or inaccessible.
+#[cfg(windows)]
+pub fn get_startup_registry() -> Option<String> {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+
+    const KEY_QUERY_VALUE: u32 = 0x0001;
+    const REG_SZ: u32 = 1;
+    const ERROR_SUCCESS: i32 = 0;
+    const ERROR_FILE_NOT_FOUND: i32 = 2;
+
+    let sub_key: Vec<u16> = OsStr::new("Software\\Microsoft\\Windows\\CurrentVersion\\Run")
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
+    extern "system" {
+        fn RegOpenKeyExW(
+            hKey: usize,
+            lpSubKey: *const u16,
+            ulOptions: u32,
+            samDesired: u32,
+            phkResult: *mut usize,
+        ) -> i32;
+        fn RegQueryValueExW(
+            hKey: usize,
+            lpValueName: *const u16,
+            lpReserved: *mut u32,
+            lpType: *mut u32,
+            lpData: *mut u8,
+            lpcbData: *mut i32,
+        ) -> i32;
+        fn RegCloseKey(hKey: usize) -> i32;
+    }
+
+    let mut hkey: usize = 0;
+    let rc = unsafe { RegOpenKeyExW(HKEY_CURRENT_USER, sub_key.as_ptr(), 0, KEY_QUERY_VALUE, &mut hkey) };
+    if rc != ERROR_SUCCESS {
+        return None;
+    }
+
+    let value_name: Vec<u16> = OsStr::new("Notes")
+        .encode_wide()
+        .chain(std::iter::once(0))
+        .collect();
+
+    let mut buf = [0u16; 512];
+    let mut buf_size: i32 = (buf.len() * 2) as i32;
+    let mut value_type: u32 = 0;
+    let rc = unsafe {
+        RegQueryValueExW(
+            hkey,
+            value_name.as_ptr(),
+            std::ptr::null_mut(),
+            &mut value_type,
+            buf.as_mut_ptr() as *mut u8,
+            &mut buf_size,
+        )
+    };
+
+    unsafe { RegCloseKey(hkey); }
+
+    if rc != ERROR_SUCCESS || value_type != REG_SZ || buf_size <= 2 {
+        return None;
+    }
+
+    // buf_size is in bytes; convert to u16 count (including null terminator)
+    let count = (buf_size as usize).saturating_sub(2) / 2;
+    let result = String::from_utf16(&buf[..count]).ok()?;
+    Some(result)
+}
+
+#[cfg(not(windows))]
+pub fn get_startup_registry() -> Option<String> {
+    None
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -308,5 +386,82 @@ mod tests {
         write(&path, "should fail silently");
         // File should NOT exist since parent doesn't exist
         assert!(!path.exists());
+    }
+
+    // ── Auto-start registry tests (Windows only) ─────────────────
+    // Note: serialized with a Mutex because all tests share the same
+    // registry key (HKCU\...\Run\Notes) and run in parallel.
+
+    #[cfg(windows)]
+    use std::sync::Mutex;
+    #[cfg(windows)]
+    static STARTUP_LOCK: Mutex<()> = Mutex::new(());
+
+    #[cfg(windows)]
+    #[test]
+    fn test_startup_registry_initial_clean() {
+        let _lock = STARTUP_LOCK.lock().unwrap();
+        // Clean up any leftover from previous runs
+        set_startup_registry(false);
+        // Initially, the registry value should not exist
+        assert!(get_startup_registry().is_none(), "expected clean state");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_startup_registry_set_and_read() {
+        let _lock = STARTUP_LOCK.lock().unwrap();
+        // Ensure clean state
+        set_startup_registry(false);
+
+        // Enable auto-start
+        set_startup_registry(true);
+        let value = get_startup_registry();
+        assert!(value.is_some(), "registry value should exist after set");
+
+        let path = value.unwrap();
+        assert!(!path.is_empty(), "path should not be empty");
+        // The path should end with ".exe"
+        assert!(
+            path.to_lowercase().ends_with(".exe"),
+            "path should end with .exe, got: {path}"
+        );
+        // The path should be an absolute file path
+        assert!(path.contains('\\'), "path should be absolute: {path}");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_startup_registry_disable_clears() {
+        let _lock = STARTUP_LOCK.lock().unwrap();
+        // Ensure clean state
+        set_startup_registry(false);
+        assert!(get_startup_registry().is_none());
+
+        // Enable then disable
+        set_startup_registry(true);
+        assert!(get_startup_registry().is_some(), "should exist after enable");
+        set_startup_registry(false);
+        assert!(
+            get_startup_registry().is_none(),
+            "should be cleared after disable"
+        );
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn test_startup_registry_idempotent() {
+        let _lock = STARTUP_LOCK.lock().unwrap();
+        // Calling set_startup_registry multiple times with the same state
+        // should not cause errors.
+        set_startup_registry(false);
+        set_startup_registry(false); // again — should be no-op
+        assert!(get_startup_registry().is_none());
+
+        set_startup_registry(true);
+        let val1 = get_startup_registry();
+        set_startup_registry(true); // again — should overwrite with same path
+        let val2 = get_startup_registry();
+        assert_eq!(val1, val2, "repeated enable should keep same path");
     }
 }

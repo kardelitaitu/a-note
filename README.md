@@ -85,9 +85,9 @@ Experimental Tauri v2 mobile support — see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Testing
 
 ```bash
-# 171 tests across unit, integration, and property-based suites
+# 175 tests across unit, integration, and property-based suites
 cd src-tauri
-cargo test --lib              # 149 unit tests
+cargo test --lib              # 153 unit tests
 cargo test --test encryption  # 14 integration tests
 cargo test --test property    # 8 property-based tests (proptest)
 ```
