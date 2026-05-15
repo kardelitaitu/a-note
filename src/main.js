@@ -8,7 +8,7 @@ const btnClose = document.getElementById("btn-close");
 const btnMenu = document.getElementById("btn-menu");
 const menuDropdown = document.getElementById("menu-dropdown");
 const menuWordwrap = document.getElementById("menu-wordwrap");
-let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false, theme: "dark" };
+let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false, theme: "dark", titlebar_color: "", titlebar_fill: 100 };
 
 const themes = [
   { id: "dark", label: "Dark" },
@@ -50,6 +50,23 @@ function applyTheme() {
   document.querySelectorAll("#menu-themes button").forEach((btn) => {
     btn.className = btn.dataset.theme === config.theme ? "active" : "";
   });
+  applyTitlebarColor();
+}
+
+function applyTitlebarColor() {
+  if (config.titlebar_color) {
+    const r = parseInt(config.titlebar_color.slice(1, 3), 16);
+    const g = parseInt(config.titlebar_color.slice(3, 5), 16);
+    const b = parseInt(config.titlebar_color.slice(5, 7), 16);
+    const a = (config.titlebar_fill || 100) / 100;
+    document.body.style.setProperty("--titlebar-bg", `rgba(${r},${g},${b},${a})`);
+  } else {
+    document.body.style.removeProperty("--titlebar-bg");
+  }
+  const swatch = document.getElementById("titlebar-swatch");
+  if (swatch) {
+    swatch.style.background = config.titlebar_color || "var(--titlebar-bg)";
+  }
 }
 
 function initThemes() {
@@ -158,12 +175,12 @@ editor.addEventListener("dblclick", () => {
 btnMenu.addEventListener("click", (e) => {
   e.stopPropagation();
   menuDropdown.classList.toggle("open");
-  menuDropdown.classList.remove("show-themes");
+  menuDropdown.classList.remove("show-themes", "show-titlebar");
 });
 
 function closeMenu() {
   menuDropdown.classList.remove("open");
-  menuDropdown.classList.remove("show-themes");
+  menuDropdown.classList.remove("show-themes", "show-titlebar");
 }
 
 // Theme submenu navigation
@@ -173,6 +190,46 @@ document.getElementById("menu-theme-btn").addEventListener("click", () => {
 
 document.getElementById("menu-theme-back").addEventListener("click", () => {
   menuDropdown.classList.remove("show-themes");
+});
+
+// Titlebar color submenu navigation
+document.getElementById("menu-titlebar-btn").addEventListener("click", () => {
+  menuDropdown.classList.add("show-titlebar");
+});
+
+document.getElementById("menu-titlebar-back").addEventListener("click", () => {
+  menuDropdown.classList.remove("show-titlebar");
+});
+
+// Titlebar color picker
+document.getElementById("menu-color-row").addEventListener("click", () => {
+  document.getElementById("titlebar-color-picker").click();
+});
+
+document.getElementById("titlebar-color-picker").addEventListener("input", (e) => {
+  config.titlebar_color = e.target.value;
+  applyTitlebarColor();
+  saveConfig();
+});
+
+// Titlebar fill slider
+document.getElementById("titlebar-fill-slider").addEventListener("input", (e) => {
+  config.titlebar_fill = parseInt(e.target.value);
+  document.getElementById("titlebar-fill-value").textContent = config.titlebar_fill + "%";
+  applyTitlebarColor();
+  saveConfig();
+});
+
+// Reset titlebar color to default
+document.getElementById("menu-titlebar-default").addEventListener("click", () => {
+  config.titlebar_color = "";
+  config.titlebar_fill = 100;
+  document.getElementById("titlebar-fill-slider").value = 100;
+  document.getElementById("titlebar-fill-value").textContent = "100%";
+  document.getElementById("titlebar-color-picker").value = "#000000";
+  applyTitlebarColor();
+  saveConfig();
+  closeMenu();
 });
 
 // Word wrap toggle
@@ -243,6 +300,11 @@ async function trackWindow() {
 
   initThemes();
   await loadConfig();
+  document.getElementById("titlebar-fill-slider").value = config.titlebar_fill;
+  document.getElementById("titlebar-fill-value").textContent = config.titlebar_fill + "%";
+  if (config.titlebar_color) {
+    document.getElementById("titlebar-color-picker").value = config.titlebar_color;
+  }
   await loadNote();
   await trackWindow();
 

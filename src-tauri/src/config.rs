@@ -13,6 +13,14 @@ pub struct Config {
     pub word_wrap: bool,
     #[serde(default = "default_theme")]
     pub theme: String,
+    #[serde(default)]
+    pub titlebar_color: String,
+    #[serde(default = "default_fill")]
+    pub titlebar_fill: u8,
+}
+
+fn default_fill() -> u8 {
+    100
 }
 
 fn default_theme() -> String {
@@ -30,6 +38,8 @@ impl Default for Config {
             always_on_top: true,
             word_wrap: false,
             theme: default_theme(),
+            titlebar_color: String::new(),
+            titlebar_fill: default_fill(),
         }
     }
 }
@@ -101,6 +111,8 @@ mod tests {
             always_on_top: false,
             word_wrap: true,
             theme: "light".to_string(),
+            titlebar_color: "#ff6b6b".to_string(),
+            titlebar_fill: 80,
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         let restored: Config = serde_json::from_str(&json).unwrap();
@@ -112,6 +124,8 @@ mod tests {
         assert!(!restored.always_on_top);
         assert!(restored.word_wrap);
         assert_eq!(restored.theme, "light");
+        assert_eq!(restored.titlebar_color, "#ff6b6b");
+        assert_eq!(restored.titlebar_fill, 80);
     }
 
     #[test]
@@ -129,6 +143,8 @@ mod tests {
             always_on_top: true,
             word_wrap: true,
             theme: "light".to_string(),
+            titlebar_color: "#3498db".to_string(),
+            titlebar_fill: 90,
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         crate::util::write(&path, &json);
@@ -142,6 +158,8 @@ mod tests {
         assert_eq!(restored.font_size, 18);
         assert!(restored.always_on_top);
         assert_eq!(restored.theme, "light");
+        assert_eq!(restored.titlebar_color, "#3498db");
+        assert_eq!(restored.titlebar_fill, 90);
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -168,6 +186,14 @@ mod tests {
         let old_json = r#"{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true,"word_wrap":false}"#;
         let restored: Config = serde_json::from_str(old_json).unwrap();
         assert_eq!(restored.theme, "dark");
+    }
+
+    #[test]
+    fn test_titlebar_defaults_when_missing() {
+        let old_json = r#"{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true,"word_wrap":false,"theme":"dracula"}"#;
+        let restored: Config = serde_json::from_str(old_json).unwrap();
+        assert_eq!(restored.titlebar_color, "");
+        assert_eq!(restored.titlebar_fill, 100);
     }
 
     #[test]

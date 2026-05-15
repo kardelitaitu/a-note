@@ -28,6 +28,11 @@
               <span>Theme</span>
               <span class="menu-arrow">&#9654;</span>
             </button>
+            <button id="menu-titlebar-btn">
+              <span></span>
+              <span>Titlebar color</span>
+              <span class="menu-arrow">&#9654;</span>
+            </button>
           </div>
           <div id="menu-page-themes">
             <button id="menu-theme-back">
@@ -36,6 +41,25 @@
             </button>
             <div class="menu-sep"></div>
             <div id="menu-themes"></div>
+          </div>
+          <div id="menu-page-titlebar">
+            <button id="menu-titlebar-back">
+              <span class="menu-arrow">&#9664;</span>
+              <span>Back</span>
+            </button>
+            <div class="menu-sep"></div>
+            <button id="menu-titlebar-default">Default</button>
+            <div class="menu-sep"></div>
+            <div class="menu-color-row" id="menu-color-row">
+              <span>Color</span>
+              <span id="titlebar-swatch"></span>
+            </div>
+            <input type="color" id="titlebar-color-picker" hidden>
+            <div class="menu-slider-row">
+              <span>Fill</span>
+              <input type="range" id="titlebar-fill-slider" min="0" max="100" value="100">
+              <span id="titlebar-fill-value" class="menu-slider-pct">100%</span>
+            </div>
           </div>
         </div>
       </div>
