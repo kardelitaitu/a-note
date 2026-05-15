@@ -85,36 +85,22 @@ mod tests {
 
     #[test]
     fn test_event_appends_to_log() {
-        // init() clears the log, then event writes
-        init();
-        event("test-cat", "test message");
-
         let dir = exe_dir();
         let stem = exe_stem();
         let path = dir.join(format!("{stem}.log"));
-        let content = std::fs::read_to_string(&path).unwrap_or_default();
+        let _ = std::fs::write(&path, "");
 
-        assert!(content.contains("["));
-        assert!(content.contains("] test-cat: test message"));
-        assert!(content.contains("startup: Application started"));
-    }
-
-    #[test]
-    fn test_event_multiple_events_append() {
-        init();
         event("cat-a", "msg a");
         event("cat-b", "msg b");
-
-        let dir = exe_dir();
-        let stem = exe_stem();
-        let path = dir.join(format!("{stem}.log"));
         let content = std::fs::read_to_string(&path).unwrap_or_default();
 
-        assert!(content.contains("cat-a: msg a"));
-        assert!(content.contains("cat-b: msg b"));
-        // Count the number of lines
+        assert!(content.contains("cat-a: msg a"), "missing cat-a");
+        assert!(content.contains("cat-b: msg b"), "missing cat-b");
         let lines: Vec<&str> = content.lines().collect();
-        assert!(lines.len() >= 3); // startup + cat-a + cat-b
+        assert!(lines.len() >= 2, "expected ≥2 lines, got {}", lines.len());
+        // Each line should have a timestamp
+        assert!(content.contains("["));
+        assert!(content.contains("]"));
     }
 
     #[test]

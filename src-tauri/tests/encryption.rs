@@ -289,3 +289,40 @@ fn test_tampered_notefile_fails() {
     let result = restored.decrypt_to_note(&key);
     assert!(result.is_err(), "tampered ciphertext must fail decryption");
 }
+
+// ── Empty content edge cases ─────────────────────────────────────────
+
+#[test]
+fn test_empty_plaintext_full_workflow() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("empty-test", &salt).unwrap();
+    let (nonce, ct) = crypto::encrypt("", &key).unwrap();
+    let pt = crypto::decrypt(&ct, &nonce, &key).unwrap();
+    assert_eq!(pt, "");
+}
+
+#[test]
+fn test_empty_password_workflow() {
+    let salt = crypto::generate_salt();
+    // Empty password derives a key via Argon2 (it accepts empty strings)
+    let key = crypto::derive_key("", &salt).unwrap();
+    let (nonce, ct) = crypto::encrypt("empty pwd test", &key).unwrap();
+    let pt = crypto::decrypt(&ct, &nonce, &key).unwrap();
+    assert_eq!(pt, "empty pwd test");
+}
+
+// ── Multiple keys with same content ───────────────────────────────────
+
+#[test]
+fn test_same_content_different_keys_produce_different_ciphertexts() {
+    let salt = crypto::generate_salt();
+    let key_a = crypto::derive_key("key-a", &salt).unwrap();
+    let key_b = crypto::derive_key("key-b", &salt).unwrap();
+
+    let (nonce_a, ct_a) = crypto::encrypt("same content", &key_a).unwrap();
+    let (nonce_b, ct_b) = crypto::encrypt("same content", &key_b).unwrap();
+
+    // Different keys should produce completely different outputs
+    assert_ne!(ct_a, ct_b, "different keys should produce different ciphertexts");
+    assert_ne!(nonce_a, nonce_b, "different keys still get unique nonces");
+}

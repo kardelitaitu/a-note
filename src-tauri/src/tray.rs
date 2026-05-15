@@ -231,4 +231,41 @@ mod tests {
         let non_zero = bytes.iter().filter(|&&b| b != 0).count();
         assert!(non_zero > 0, "colored circle should have non-zero pixels");
     }
+
+    #[test]
+    fn test_generate_icon_center_pixel_is_red() {
+        let img = generate_colored_icon("#ff0000").unwrap();
+        let bytes = img.rgba();
+        // Center pixel = (16, 16) → index = (16*32+16)*4 = 2064
+        let idx = (16 * 32 + 16) * 4;
+        assert_eq!(bytes[idx], 255, "R should be 255");     // R
+        assert_eq!(bytes[idx + 1], 0, "G should be 0");     // G
+        assert_eq!(bytes[idx + 2], 0, "B should be 0");     // B
+        assert!(bytes[idx + 3] > 0, "Alpha should be > 0"); // A
+    }
+
+    #[test]
+    fn test_generate_icon_center_pixel_is_blue() {
+        let img = generate_colored_icon("#0000ff").unwrap();
+        let bytes = img.rgba();
+        let idx = (16 * 32 + 16) * 4;
+        assert_eq!(bytes[idx], 0, "R should be 0");
+        assert_eq!(bytes[idx + 1], 0, "G should be 0");
+        assert_eq!(bytes[idx + 2], 255, "B should be 255");
+        assert!(bytes[idx + 3] > 0, "Alpha should be > 0");
+    }
+
+    #[test]
+    fn test_generate_icon_corner_is_transparent() {
+        let img = generate_colored_icon("#ff0000").unwrap();
+        let bytes = img.rgba();
+        // Corner pixel = (0,0)
+        assert_eq!(bytes[3], 0, "corner should be transparent");
+        // Corner pixel = (31,0) 
+        assert_eq!((31 * 4 + 3) as usize, 127);
+        assert_eq!(bytes[127], 0, "corner should be transparent");
+        // Corner pixel = (0,31)
+        assert_eq!((31 * 32 * 4 + 3) as usize, 3971);
+        assert_eq!(bytes[3971], 0, "corner should be transparent");
+    }
 }

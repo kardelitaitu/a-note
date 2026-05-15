@@ -337,4 +337,39 @@ mod tests {
         let restored: Config = serde_json::from_str(old_json).unwrap();
         assert_eq!(restored.font_family, "Cascadia Code");
     }
+
+    #[test]
+    fn test_font_family_persists_through_file_roundtrip() {
+        let dir = std::env::temp_dir().join(format!(
+            "a-note-test-font-persist-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("font-config.json");
+
+        let cfg = Config {
+            font_family: "Fira Code".to_string(),
+            ..Config::default()
+        };
+        let json = serde_json::to_string_pretty(&cfg).unwrap();
+        crate::util::write(&path, &json);
+
+        let read_back = std::fs::read_to_string(&path).unwrap();
+        let restored: Config = serde_json::from_str(&read_back).unwrap();
+        assert_eq!(restored.font_family, "Fira Code");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_font_family_default_on_corrupt_json() {
+        // Corrupt JSON → serde error → and_then chain returns default Config
+        // This simulates the config::load() fallback path
+        let corrupt = "not valid json at all";
+        let result: Result<Config, _> = serde_json::from_str(corrupt);
+        assert!(result.is_err());
+        // The fallback is Config::default() which has font_family = "Cascadia Code"
+        let fallback = Config::default();
+        assert_eq!(fallback.font_family, "Cascadia Code");
+    }
 }

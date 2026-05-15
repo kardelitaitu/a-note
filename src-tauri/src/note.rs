@@ -1149,4 +1149,125 @@ mod tests {
         assert_eq!(loaded.text, text);
         assert_eq!(loaded.cursor_pos, 12);
     }
+
+    // ── NoteFile edge cases ────────────────────────────────────────
+
+    #[test]
+    fn test_notefile_plaintext_with_encrypted_flag_false() {
+        // What happens if someone manually sets encrypted: false but also
+        // includes nonce/ciphertext fields? Should ignore crypto fields.
+        let json = r#"{"encrypted":false,"nonce_hex":"aa","ciphertext_hex":"bb","text":"normal","cursor_pos":3,"scroll_top":1}"#;
+        let nf: NoteFile = serde_json::from_str(json).unwrap();
+        assert!(!nf.encrypted);
+        assert_eq!(nf.text, "normal");
+        // decrypt_to_note should return text directly, ignoring crypto fields
+        let note = nf.decrypt_to_note(&[0u8; 32]).unwrap();
+        assert_eq!(note.text, "normal");
+        assert_eq!(note.cursor_pos, 3);
+    }
+
+    #[test]
+    fn test_notefile_all_default_fields() {
+        // Minimal JSON with no fields at all
+        let json = r#"{}"#;
+        let nf: NoteFile = serde_json::from_str(json).unwrap();
+        assert!(!nf.encrypted);
+        assert!(nf.text.is_empty());
+        assert_eq!(nf.cursor_pos, 0);
+        assert_eq!(nf.scroll_top, 0);
+        assert!(nf.nonce_hex.is_none());
+        assert!(nf.ciphertext_hex.is_none());
+    }
+
+    #[test]
+    fn test_notefile_only_text_field() {
+        // Even more minimal: just text
+        let json = r#"{"text":"just text"}"#;
+        let nf: NoteFile = serde_json::from_str(json).unwrap();
+        assert!(!nf.encrypted);
+        assert_eq!(nf.text, "just text");
+        let note = nf.decrypt_to_note(&[0u8; 32]).unwrap();
+        assert_eq!(note.text, "just text");
+    }
+
+    #[test]
+    fn test_note_to_notefile_and_back() {
+        // Roundtrip: Note → NoteFile (plain) → Note
+        let original = Note {
+            text: "roundtrip test".to_string(),
+            cursor_pos: 7,
+            scroll_top: 4,
+        };
+        let nf = NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: original.text.clone(),
+            cursor_pos: original.cursor_pos,
+            scroll_top: original.scroll_top,
+        };
+        let json = serde_json::to_string(&nf).unwrap();
+        let restored_nf: NoteFile = serde_json::from_str(&json).unwrap();
+        let restored = restored_nf.decrypt_to_note(&[0u8; 32]).unwrap();
+        assert_eq!(restored.text, "roundtrip test");
+        assert_eq!(restored.cursor_pos, 7);
+        assert_eq!(restored.scroll_top, 4);
+    }
+
+    // ── Note edge cases ─────────────────────────────────────────────
+
+    #[test]
+    fn test_note_very_long_text() {
+        let text = "A".repeat(100_000);
+        let note = Note {
+            text,
+            cursor_pos: 50_000,
+            scroll_top: 1,
+        };
+        let json = serde_json::to_string(&note).unwrap();
+        let restored: Note = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.text.len(), 100_000);
+        assert_eq!(restored.cursor_pos, 50_000);
+    }
+
+    #[test]
+    fn test_note_extra_unknown_fields() {
+        // Forward compat: extra fields in JSON should be ignored
+        let json = r#"{"text":"hello","cursor_pos":3,"scroll_top":1,"unknown_field":"ignored","extra_nested":{"a":1}}"#;
+        let restored: Note = serde_json::from_str(json).unwrap();
+        assert_eq!(restored.text, "hello");
+        assert_eq!(restored.cursor_pos, 3);
+        assert_eq!(restored.scroll_top, 1);
+    }
+
+    #[test]
+    fn test_note_large_values() {
+        let note = Note {
+            text: "test".to_string(),
+            cursor_pos: u32::MAX,
+            scroll_top: u32::MAX,
+        };
+        let json = serde_json::to_string(&note).unwrap();
+        let restored: Note = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.cursor_pos, u32::MAX);
+        assert_eq!(restored.scroll_top, u32::MAX);
+    }
+
+    #[test]
+    fn test_notefile_explicit_encrypted_false() {
+        // NoteFile with explicit encrypted:false should serialize with that field
+        let nf = NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: "explicit".to_string(),
+            cursor_pos: 1,
+            scroll_top: 0,
+        };
+        let json = serde_json::to_string(&nf).unwrap();
+        assert!(json.contains("\"encrypted\":false"));
+        // Should NOT have crypto fields
+        assert!(!json.contains("nonce_hex"));
+        assert!(!json.contains("ciphertext_hex"));
+    }
 }
