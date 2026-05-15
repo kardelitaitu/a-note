@@ -25,6 +25,8 @@ pub struct Config {
     pub lock_timeout_minutes: u32,
     #[serde(default = "default_font_family")]
     pub font_family: String,
+    #[serde(default)]
+    pub start_with_windows: bool,
 }
 
 fn default_fill() -> u8 {
@@ -60,6 +62,7 @@ impl Default for Config {
             password_salt: String::new(),
             lock_timeout_minutes: default_lock_timeout(),
             font_family: default_font_family(),
+            start_with_windows: false,
         }
     }
 }
@@ -137,6 +140,7 @@ mod tests {
             password_salt: "aabbccdd".to_string(),
             lock_timeout_minutes: 15,
             font_family: "Inter".to_string(),
+            start_with_windows: false,
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         let restored: Config = serde_json::from_str(&json).unwrap();
@@ -177,6 +181,7 @@ mod tests {
             password_salt: "deadbeef".to_string(),
             lock_timeout_minutes: 30,
             font_family: "Roboto".to_string(),
+            start_with_windows: false,
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         crate::util::write(&path, &json);
@@ -313,6 +318,7 @@ mod tests {
             password_salt: "deadbeef010203040506070809101112".to_string(),
             lock_timeout_minutes: 30,
             font_family: "Fira Code".to_string(),
+            start_with_windows: false,
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         let restored: Config = serde_json::from_str(&json).unwrap();
@@ -371,5 +377,29 @@ mod tests {
         // The fallback is Config::default() which has font_family = "Cascadia Code"
         let fallback = Config::default();
         assert_eq!(fallback.font_family, "Cascadia Code");
+    }
+
+    #[test]
+    fn test_start_with_windows_default_false() {
+        let cfg = Config::default();
+        assert!(!cfg.start_with_windows);
+    }
+
+    #[test]
+    fn test_start_with_windows_roundtrip() {
+        let cfg = Config {
+            start_with_windows: true,
+            ..Config::default()
+        };
+        let json = serde_json::to_string_pretty(&cfg).unwrap();
+        let restored: Config = serde_json::from_str(&json).unwrap();
+        assert!(restored.start_with_windows);
+    }
+
+    #[test]
+    fn test_start_with_windows_missing_in_json_defaults_false() {
+        let old_json = r#"{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true}"#;
+        let restored: Config = serde_json::from_str(old_json).unwrap();
+        assert!(!restored.start_with_windows);
     }
 }

@@ -8,6 +8,7 @@ const btnClose = document.getElementById("btn-close");
 const btnMenu = document.getElementById("btn-menu");
 const menuDropdown = document.getElementById("menu-dropdown");
 const menuWordwrap = document.getElementById("menu-wordwrap");
+const menuStartup = document.getElementById("menu-startup");
 let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false, theme: "dark", titlebar_color: "", titlebar_fill: 100 };
 
 // Lock state
@@ -53,6 +54,7 @@ async function loadConfig() {
     applyTheme();
     applyPinState();
     applyWordWrapState();
+    applyStartupState();
     applyFont();
   } catch (e) {
     console.error("load_config failed:", e);
@@ -166,6 +168,10 @@ function initFonts() {
 
 function applyWordWrapState() {
   menuWordwrap.className = config.word_wrap ? "on" : "";
+}
+
+function applyStartupState() {
+  menuStartup.className = config.start_with_windows ? "on" : "";
 }
 
 async function saveConfig() {
@@ -529,6 +535,18 @@ menuWordwrap.addEventListener("click", () => {
   editor.style.whiteSpace = config.word_wrap ? "pre-wrap" : "pre";
   applyWordWrapState();
   saveConfig();
+  closeMenu();
+});
+
+// Start with Windows toggle
+menuStartup.addEventListener("click", () => {
+  const enabled = !config.start_with_windows;
+  invoke("set_start_with_windows", { enabled }).then(() => {
+    config.start_with_windows = enabled;
+    applyStartupState();
+  }).catch((e) => {
+    console.error("set_start_with_windows failed:", e);
+  });
   closeMenu();
 });
 

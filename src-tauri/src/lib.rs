@@ -21,6 +21,21 @@ fn update_tray_color(color: String, app: tauri::AppHandle) {
     tray::update_color(&app, &color);
 }
 
+#[tauri::command]
+fn set_start_with_windows(enabled: bool) {
+    util::set_startup_registry(enabled);
+    let mut cfg = config::load();
+    cfg.start_with_windows = enabled;
+    config::save(&cfg);
+    diagnostics::event(
+        "startup",
+        &format!(
+            "Start with Windows {}",
+            if enabled { "enabled" } else { "disabled" }
+        ),
+    );
+}
+
 // ── Response types ───────────────────────────────────────────────────────
 
 #[derive(Debug, Serialize)]
@@ -363,6 +378,7 @@ pub fn run() {
             remove_password,
             change_password,
             update_tray_color,
+            set_start_with_windows,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
