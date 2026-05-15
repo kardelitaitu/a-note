@@ -83,6 +83,8 @@ function applyTitlebarColor() {
   }
 }
 
+let previewTimer;
+
 function initThemes() {
   const container = document.getElementById("menu-themes");
   themes.forEach((t) => {
@@ -91,7 +93,18 @@ function initThemes() {
     btn.innerHTML = `
       <span>${t.label}</span>
       <span class="check-svg"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>`;
+    btn.addEventListener("mouseenter", () => {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => {
+        document.body.className = "theme-" + t.id;
+      }, 500);
+    });
+    btn.addEventListener("mouseleave", () => {
+      clearTimeout(previewTimer);
+      document.body.className = "theme-" + config.theme;
+    });
     btn.addEventListener("click", () => {
+      clearTimeout(previewTimer);
       config.theme = t.id;
       applyTheme();
       saveConfig();
