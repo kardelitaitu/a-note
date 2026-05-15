@@ -385,7 +385,7 @@ html, body {
   height: 100%;
   overflow: hidden;
   background: var(--bg);
-  font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-family, 'Cascadia Code', 'Fira Code', 'Consolas', monospace);
 }
 
 #editor {
@@ -548,7 +548,8 @@ html, body {
 
 /* Menu pages */
 #menu-page-themes,
-#menu-page-titlebar {
+#menu-page-titlebar,
+#menu-page-fonts {
   display: none;
 }
 
@@ -565,6 +566,14 @@ html, body {
 }
 
 #menu-dropdown.show-titlebar #menu-page-titlebar {
+  display: block;
+}
+
+#menu-dropdown.show-fonts #menu-page-main {
+  display: none;
+}
+
+#menu-dropdown.show-fonts #menu-page-fonts {
   display: block;
 }
 

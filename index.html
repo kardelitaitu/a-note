@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Sticky Notes</title>
     <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/fonts/fonts.css" />
   </head>
   <body>
     <textarea id="editor" spellcheck="false"></textarea>
@@ -31,6 +32,11 @@
             <button id="menu-titlebar-btn">
               <span></span>
               <span>Titlebar color</span>
+              <span class="menu-arrow">&#9654;</span>
+            </button>
+            <button id="menu-font-btn">
+              <span></span>
+              <span>Font</span>
               <span class="menu-arrow">&#9654;</span>
             </button>
           </div>
@@ -60,6 +66,14 @@
               <input type="range" id="titlebar-fill-slider" min="0" max="100" value="100">
               <span id="titlebar-fill-value" class="menu-slider-pct">100%</span>
             </div>
+          </div>
+          <div id="menu-page-fonts">
+            <button id="menu-font-back">
+              <span class="menu-arrow">&#9664;</span>
+              <span>Back</span>
+            </button>
+            <div class="menu-sep"></div>
+            <div id="menu-fonts"></div>
           </div>
         </div>
       </div>

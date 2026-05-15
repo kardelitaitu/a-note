@@ -23,6 +23,8 @@ pub struct Config {
     pub password_salt: String,
     #[serde(default = "default_lock_timeout")]
     pub lock_timeout_minutes: u32,
+    #[serde(default = "default_font_family")]
+    pub font_family: String,
 }
 
 fn default_fill() -> u8 {
@@ -35,6 +37,10 @@ fn default_theme() -> String {
 
 fn default_lock_timeout() -> u32 {
     10
+}
+
+fn default_font_family() -> String {
+    "Cascadia Code".to_string()
 }
 
 impl Default for Config {
@@ -53,6 +59,7 @@ impl Default for Config {
             password_protected: false,
             password_salt: String::new(),
             lock_timeout_minutes: default_lock_timeout(),
+            font_family: default_font_family(),
         }
     }
 }
@@ -302,6 +309,7 @@ mod tests {
             password_protected: true,
             password_salt: "deadbeef010203040506070809101112".to_string(),
             lock_timeout_minutes: 30,
+            font_family: "Fira Code".to_string(),
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         let restored: Config = serde_json::from_str(&json).unwrap();
@@ -310,5 +318,20 @@ mod tests {
         assert!(restored.password_protected);
         assert_eq!(restored.password_salt, "deadbeef010203040506070809101112");
         assert_eq!(restored.lock_timeout_minutes, 30);
+        assert_eq!(restored.font_family, "Fira Code");
+    }
+
+    #[test]
+    fn test_font_family_default_when_missing() {
+        let old_json = r#"{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true}"#;
+        let restored: Config = serde_json::from_str(old_json).unwrap();
+        assert_eq!(restored.font_family, "Cascadia Code");
+    }
+
+    #[test]
+    fn test_font_family_backward_compat() {
+        let old_json = r#"{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true,"word_wrap":false,"theme":"dark"}"#;
+        let restored: Config = serde_json::from_str(old_json).unwrap();
+        assert_eq!(restored.font_family, "Cascadia Code");
     }
 }
