@@ -22,11 +22,8 @@ Thumbs.db
 # Data files (auto-generated next to the exe, already covered by src-tauri/target/)
 # *.config and *.notes are intentionally NOT ignored globally — only the target/ directory
 
-# Reference app — stale binaries & runtime data
-this is the reference folder/Notes.exe
-this is the reference folder/Notes.lnk
-this is the reference folder/StickyNote.cfg
-this is the reference folder/temp.json
+# Reference app (original PowerShell/WPF implementation)
+this is the reference folder/
 
 # AI agent instructions (not part of the project source)
 AGENTS.md
