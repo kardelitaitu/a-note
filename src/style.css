@@ -4,11 +4,62 @@
   box-sizing: border-box;
 }
 
+/* === Theme variables === */
+.theme-dark {
+  --bg: #1e1e1e;
+  --text: #d4d4d4;
+  --titlebar-bg: #1e1e1e;
+  --btn-color: #b3b3b3;
+  --btn-hover-bg: rgba(255, 255, 255, 0.08);
+  --btn-hover-text: #fff;
+  --btn-active-bg: rgba(255, 255, 255, 0.12);
+  --pin-active: #ffd700;
+  --pin-hover-bg: rgba(255, 215, 0, 0.12);
+  --title-text: rgba(255, 255, 255, 0.35);
+  --title-sep: rgba(255, 255, 255, 0.06);
+  --menu-bg: #2a2a2a;
+  --menu-border: #3a3a3a;
+  --menu-text: #d4d4d4;
+  --menu-hover: rgba(255, 255, 255, 0.08);
+  --check-border: #666;
+  --check-mark: #ffd700;
+  --scroll-thumb: rgba(204, 204, 204, 0.19);
+  --scroll-thumb-hover: rgba(204, 204, 204, 0.35);
+  --selection: #264f78;
+  --close-bg: #e81123;
+  --close-active: #bf0f1d;
+}
+
+.theme-light {
+  --bg: #f0f0f0;
+  --text: #1e1e1e;
+  --titlebar-bg: #f0f0f0;
+  --btn-color: #666;
+  --btn-hover-bg: rgba(0, 0, 0, 0.06);
+  --btn-hover-text: #000;
+  --btn-active-bg: rgba(0, 0, 0, 0.10);
+  --pin-active: #d4a800;
+  --pin-hover-bg: rgba(212, 168, 0, 0.12);
+  --title-text: rgba(0, 0, 0, 0.35);
+  --title-sep: rgba(0, 0, 0, 0.08);
+  --menu-bg: #ffffff;
+  --menu-border: #d0d0d0;
+  --menu-text: #1e1e1e;
+  --menu-hover: rgba(0, 0, 0, 0.06);
+  --check-border: #999;
+  --check-mark: #d4a800;
+  --scroll-thumb: rgba(0, 0, 0, 0.15);
+  --scroll-thumb-hover: rgba(0, 0, 0, 0.25);
+  --selection: #add6ff;
+  --close-bg: #e81123;
+  --close-active: #bf0f1d;
+}
+
 html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #1e1e1e;
+  background: var(--bg);
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
 }
 
@@ -21,7 +72,7 @@ html, body {
   padding: 8px;
   padding-top: 32px;
   background: transparent;
-  color: #d4d4d4;
+  color: var(--text);
   font-family: inherit;
   font-size: 14px;
   line-height: 1.5;
@@ -32,7 +83,7 @@ html, body {
 }
 
 #editor::selection {
-  background: #264f78;
+  background: var(--selection);
 }
 
 #titlebar {
@@ -46,13 +97,13 @@ html, body {
   justify-content: flex-end;
   z-index: 10;
   cursor: grab;
-  background: #1e1e1e;
+  background: var(--titlebar-bg);
 }
 
 #title-text {
   flex: 1;
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--title-text);
   line-height: 32px;
   user-select: none;
   pointer-events: none;
@@ -63,7 +114,7 @@ html, body {
   height: 32px;
   border: none;
   background: transparent;
-  color: #b3b3b3;
+  color: var(--btn-color);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -72,29 +123,29 @@ html, body {
 }
 
 #titlebar button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: var(--btn-hover-bg);
+  color: var(--btn-hover-text);
 }
 
 #titlebar button:active {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--btn-active-bg);
 }
 
 #btn-close:hover {
-  background: #e81123;
+  background: var(--close-bg);
   color: #fff;
 }
 
 #btn-close:active {
-  background: #bf0f1d;
+  background: var(--close-active);
 }
 
 #btn-pin.active {
-  color: #ffd700;
+  color: var(--pin-active);
 }
 
 #btn-pin.active:hover {
-  background: rgba(255, 215, 0, 0.12);
+  background: var(--pin-hover-bg);
 }
 
 .pin-active {
@@ -123,8 +174,8 @@ html, body {
   position: absolute;
   top: 32px;
   right: 0;
-  background: #2a2a2a;
-  border: 1px solid #3a3a3a;
+  background: var(--menu-bg);
+  border: 1px solid var(--menu-border);
   border-radius: 4px;
   min-width: 150px;
   padding: 4px 0;
@@ -144,19 +195,19 @@ html, body {
   padding: 6px 12px;
   font-size: 12px;
   font-family: 'Segoe UI', sans-serif;
-  color: #d4d4d4;
+  color: var(--menu-text);
   cursor: pointer;
   box-sizing: border-box;
 }
 
 #menu-dropdown button:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--menu-hover);
 }
 
 .menu-check {
   width: 14px;
   height: 14px;
-  border: 1.2px solid #666;
+  border: 1.2px solid var(--check-border);
   border-radius: 2px;
   display: flex;
   align-items: center;
@@ -167,7 +218,14 @@ html, body {
 #menu-wordwrap.on .menu-check::after {
   content: '✓';
   font-size: 11px;
-  color: #ffd700;
+  color: var(--check-mark);
+}
+
+#theme-icon {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  font-size: 12px;
 }
 
 #titlebar::after {
@@ -177,7 +235,7 @@ html, body {
   left: 8px;
   right: 8px;
   height: 1px;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--title-sep);
   pointer-events: none;
 }
 
@@ -191,10 +249,10 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(204, 204, 204, 0.19);
+  background: var(--scroll-thumb);
   border-radius: 2px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(204, 204, 204, 0.35);
+  background: var(--scroll-thumb-hover);
 }

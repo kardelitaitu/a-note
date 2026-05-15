@@ -11,6 +11,12 @@ pub struct Config {
     pub always_on_top: bool,
     #[serde(default)]
     pub word_wrap: bool,
+    #[serde(default = "default_theme")]
+    pub theme: String,
+}
+
+fn default_theme() -> String {
+    "dark".to_string()
 }
 
 impl Default for Config {
@@ -23,6 +29,7 @@ impl Default for Config {
             font_size: 14,
             always_on_top: true,
             word_wrap: false,
+            theme: default_theme(),
         }
     }
 }
@@ -93,6 +100,7 @@ mod tests {
             font_size: 20,
             always_on_top: false,
             word_wrap: true,
+            theme: "light".to_string(),
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         let restored: Config = serde_json::from_str(&json).unwrap();
@@ -103,6 +111,7 @@ mod tests {
         assert_eq!(restored.font_size, 20);
         assert!(!restored.always_on_top);
         assert!(restored.word_wrap);
+        assert_eq!(restored.theme, "light");
     }
 
     #[test]
@@ -119,6 +128,7 @@ mod tests {
             font_size: 18,
             always_on_top: true,
             word_wrap: true,
+            theme: "light".to_string(),
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
         crate::util::write(&path, &json);
@@ -131,6 +141,7 @@ mod tests {
         assert_eq!(restored.top, 300);
         assert_eq!(restored.font_size, 18);
         assert!(restored.always_on_top);
+        assert_eq!(restored.theme, "light");
 
         let _ = std::fs::remove_dir_all(&dir);
     }
@@ -150,6 +161,13 @@ mod tests {
         assert_eq!(result.font_size, Config::default().font_size);
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_theme_default_dark_when_missing() {
+        let old_json = r#"{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true,"word_wrap":false}"#;
+        let restored: Config = serde_json::from_str(old_json).unwrap();
+        assert_eq!(restored.theme, "dark");
     }
 
     #[test]

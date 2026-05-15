@@ -8,14 +8,18 @@ const btnClose = document.getElementById("btn-close");
 const btnMenu = document.getElementById("btn-menu");
 const menuDropdown = document.getElementById("menu-dropdown");
 const menuWordwrap = document.getElementById("menu-wordwrap");
+const menuTheme = document.getElementById("menu-theme");
+const themeIcon = document.getElementById("theme-icon");
+const themeLabel = document.getElementById("theme-label");
 
-let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false };
+let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false, theme: "dark" };
 
 async function loadConfig() {
   try {
     config = await invoke("load_config");
     editor.style.fontSize = config.font_size + "px";
     editor.style.whiteSpace = config.word_wrap ? "pre-wrap" : "pre";
+    applyTheme();
     applyPinState();
     applyWordWrapState();
   } catch (e) {
@@ -25,6 +29,13 @@ async function loadConfig() {
 
 function applyPinState() {
   btnPin.className = config.always_on_top ? "active" : "inactive";
+}
+
+function applyTheme() {
+  const isLight = config.theme === "light";
+  document.body.className = isLight ? "theme-light" : "theme-dark";
+  themeIcon.textContent = isLight ? "☀" : "☾";
+  themeLabel.textContent = isLight ? "Dark theme" : "Light theme";
 }
 
 function applyWordWrapState() {
@@ -126,6 +137,14 @@ menuWordwrap.addEventListener("click", () => {
   config.word_wrap = !config.word_wrap;
   editor.style.whiteSpace = config.word_wrap ? "pre-wrap" : "pre";
   applyWordWrapState();
+  saveConfig();
+  closeMenu();
+});
+
+// Theme toggle
+menuTheme.addEventListener("click", () => {
+  config.theme = config.theme === "dark" ? "light" : "dark";
+  applyTheme();
   saveConfig();
   closeMenu();
 });
