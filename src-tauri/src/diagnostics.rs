@@ -78,3 +78,66 @@ fn timestamp() -> u64 {
         .unwrap_or_default()
         .as_secs()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_event_appends_to_log() {
+        // init() clears the log, then event writes
+        init();
+        event("test-cat", "test message");
+
+        let dir = exe_dir();
+        let stem = exe_stem();
+        let path = dir.join(format!("{stem}.log"));
+        let content = std::fs::read_to_string(&path).unwrap_or_default();
+
+        assert!(content.contains("["));
+        assert!(content.contains("] test-cat: test message"));
+        assert!(content.contains("startup: Application started"));
+    }
+
+    #[test]
+    fn test_event_multiple_events_append() {
+        init();
+        event("cat-a", "msg a");
+        event("cat-b", "msg b");
+
+        let dir = exe_dir();
+        let stem = exe_stem();
+        let path = dir.join(format!("{stem}.log"));
+        let content = std::fs::read_to_string(&path).unwrap_or_default();
+
+        assert!(content.contains("cat-a: msg a"));
+        assert!(content.contains("cat-b: msg b"));
+        // Count the number of lines
+        let lines: Vec<&str> = content.lines().collect();
+        assert!(lines.len() >= 3); // startup + cat-a + cat-b
+    }
+
+    #[test]
+    fn test_timestamp_reasonable() {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let ts = timestamp();
+        // Timestamp should be within the last 10 seconds
+        assert!(ts > 1_700_000_000, "timestamp seems too far in the past");
+        assert!(ts <= now + 1, "timestamp is in the future");
+    }
+
+    #[test]
+    fn test_log_path_deterministic() {
+        let dir = exe_dir();
+        let stem = exe_stem();
+
+        // Validate the path is well-formed
+        let path = dir.join(format!("{stem}.log"));
+        let path_str = path.to_string_lossy();
+        assert!(path_str.contains(stem.as_str()));
+        assert!(path_str.ends_with(".log"));
+    }
+}

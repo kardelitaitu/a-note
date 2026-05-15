@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.1.2">⬇ Download notes.exe (v0.1.2)</a>
+  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.1.4">⬇ Download notes.exe (v0.1.4)</a>
 </p>
 
 ---
@@ -52,11 +52,11 @@ Built with Rust + Tauri v2. No Electron. No bloat.
 
 ## Download
 
-**[⬇ Download notes.exe (v0.1.2)](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.2)**
+**[⬇ Download notes.exe (v0.1.4)](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.4)**
 
 No installation. No setup. Run it.
 
-Older releases: [v0.1.1](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.1)
+Older releases: [v0.1.3](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.3)
 
 ## Build from source
 
@@ -85,9 +85,9 @@ Experimental Tauri v2 mobile support — see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Testing
 
 ```bash
-# 101 tests across unit, integration, and property-based suites
+# 124 tests across unit, integration, and property-based suites
 cd src-tauri
-cargo test --lib              # 86 unit tests
+cargo test --lib              # 109 unit tests
 cargo test --test encryption  # 11 integration tests
 cargo test --test property    # 4 property-based tests (proptest)
 ```

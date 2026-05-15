@@ -53,6 +53,7 @@ async function loadConfig() {
     applyTheme();
     applyPinState();
     applyWordWrapState();
+    applyFont();
   } catch (e) {
     console.error("load_config failed:", e);
   }
@@ -117,6 +118,45 @@ function initThemes() {
     btn.addEventListener("click", () => {
       config.theme = t.id;
       applyTheme();
+      saveConfig();
+      closeMenu();
+    });
+    container.appendChild(btn);
+  });
+}
+
+const fonts = [
+  { id: "Cascadia Code", label: "Cascadia Code", type: "mono" },
+  { id: "JetBrains Mono", label: "JetBrains Mono", type: "mono" },
+  { id: "Fira Code", label: "Fira Code", type: "mono" },
+  { id: "Source Code Pro", label: "Source Code Pro", type: "mono" },
+  { id: "Inter", label: "Inter", type: "sans" },
+  { id: "Roboto", label: "Roboto", type: "sans" },
+  { id: "Open Sans", label: "Open Sans", type: "sans" },
+  { id: "Segoe UI", label: "Segoe UI", type: "sans" },
+  { id: "Arial", label: "Arial", type: "sans" },
+  { id: "Georgia", label: "Georgia", type: "serif" },
+];
+
+function applyFont() {
+  const family = config.font_family || "Cascadia Code";
+  document.body.style.setProperty("--font-family", family + ", monospace");
+  document.querySelectorAll("#menu-fonts button").forEach((btn) => {
+    btn.className = btn.dataset.font === family ? "active" : "";
+  });
+}
+
+function initFonts() {
+  const container = document.getElementById("menu-fonts");
+  fonts.forEach((f) => {
+    const btn = document.createElement("button");
+    btn.dataset.font = f.id;
+    btn.innerHTML = `
+      <span>${f.label}</span>
+      <span class="check-svg"><svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg></span>`;
+    btn.addEventListener("click", () => {
+      config.font_family = f.id;
+      applyFont();
       saveConfig();
       closeMenu();
     });
@@ -413,7 +453,7 @@ document.getElementById("pwd-lock-timeout").addEventListener("input", (e) => {
 btnMenu.addEventListener("click", (e) => {
   e.stopPropagation();
   menuDropdown.classList.toggle("open");
-  menuDropdown.classList.remove("show-themes", "show-titlebar");
+  menuDropdown.classList.remove("show-themes", "show-titlebar", "show-fonts");
 });
 
 function closeMenu() {
@@ -429,6 +469,15 @@ document.getElementById("menu-theme-btn").addEventListener("click", () => {
 
 document.getElementById("menu-theme-back").addEventListener("click", () => {
   menuDropdown.classList.remove("show-themes");
+});
+
+// Font submenu navigation
+document.getElementById("menu-font-btn").addEventListener("click", () => {
+  menuDropdown.classList.add("show-fonts");
+});
+
+document.getElementById("menu-font-back").addEventListener("click", () => {
+  menuDropdown.classList.remove("show-fonts");
 });
 
 // Titlebar color submenu navigation
@@ -449,6 +498,7 @@ document.getElementById("titlebar-color-picker").addEventListener("input", (e) =
   config.titlebar_color = e.target.value;
   applyTitlebarColor();
   saveConfig();
+  invoke("update_tray_color", { color: e.target.value }).catch(() => {});
 });
 
 // Titlebar fill slider
@@ -469,6 +519,8 @@ document.getElementById("menu-titlebar-default").addEventListener("click", () =>
   applyTitlebarColor();
   saveConfig();
   closeMenu();
+  // Reset tray icon to default blue
+  invoke("update_tray_color", { color: "#5dade2" }).catch(() => {});
 });
 
 // Word wrap toggle
@@ -625,6 +677,7 @@ function updatePasswordMenuItems() {
   titleText.textContent = name;
 
   initThemes();
+  initFonts();
   initPasswordMenu();
   await loadConfig();
   document.getElementById("titlebar-fill-slider").value = config.titlebar_fill;

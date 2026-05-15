@@ -2,6 +2,7 @@ pub mod config;
 pub mod crypto;
 pub mod diagnostics;
 pub mod note;
+pub mod tray;
 pub mod util;
 
 use serde::Serialize;
@@ -13,6 +14,11 @@ use tauri::Manager;
 /// Cleared on `lock()` or when the lock timer fires.
 struct AppState {
     encryption_key: Mutex<Option<[u8; 32]>>,
+}
+
+#[tauri::command]
+fn update_tray_color(color: String, app: tauri::AppHandle) {
+    tray::update_color(&app, &color);
 }
 
 // ── Response types ───────────────────────────────────────────────────────
@@ -312,8 +318,21 @@ pub fn run() {
         .manage(AppState {
             encryption_key: Mutex::new(None),
         })
+        .manage(tray::TrayState::<tauri::Wry>::new())
         .setup(|app| {
             let cfg = config::load();
+
+            let exe_name = std::env::current_exe()
+                .ok()
+                .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
+                .unwrap_or_else(|| "Notes".to_string());
+            let tray_color = if cfg.titlebar_color.is_empty() {
+                "#5dade2"
+            } else {
+                &cfg.titlebar_color
+            };
+
+            let _ = tray::build(app.handle(), &exe_name, tray_color);
             if let Some(window) = app.get_webview_window("main") {
                 if config::exists() {
                     let _ = window.set_position(tauri::PhysicalPosition::new(cfg.left, cfg.top));
@@ -328,10 +347,6 @@ pub fn run() {
                 let _ = window.show();
                 let _ = window.set_focus();
                 // Set taskbar title to match exe filename
-                let exe_name = std::env::current_exe()
-                    .ok()
-                    .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
-                    .unwrap_or_else(|| "Notes".to_string());
                 let _ = window.set_title(&exe_name);
             }
             Ok(())
@@ -347,6 +362,7 @@ pub fn run() {
             lock,
             remove_password,
             change_password,
+            update_tray_color,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

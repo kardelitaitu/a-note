@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.1.4 — 2026-05-15
+
+### Added
+- System tray icon with colored circle matching titlebar color (left-click show/hide, right-click Quit)
+- Tray icon tooltip shows exe filename (follows rename)
+- Crash reporter: panics captured to `{exe}.crash`, events logged to `{exe}.log`
+- `update_tray_color` Tauri command — tray icon updates in real-time on color change
+- `TrayState` managed state for dynamic tray icon updates
+- 10 tray unit tests: `parse_hex_color` edge cases, icon generation, size/pixel
+- 4 diagnostics unit tests: event logging, multi-line append, timestamp, path
+- Font selection submenu navigation fix
+- `applyFont()` called on config load for correct font on startup
+
+### Changed
+- Window title (taskbar label) now matches exe filename dynamically
+- `tray::build()` accepts `tooltip` and `initial_color` — no blue flash on startup
+- Tray icon color loaded from config at build time, not patched after
+
+### Security
+- 124 total tests (109 lib + 11 integration + 4 property-based)
+
 ## 0.1.3 — 2026-05-15
 
 ### Added
