@@ -39,8 +39,13 @@ pub fn run() {
         .setup(|app| {
             let cfg = config::load();
             if let Some(window) = app.get_webview_window("main") {
-                let _ = window.set_position(tauri::PhysicalPosition::new(cfg.left, cfg.top));
-                let _ = window.set_size(tauri::PhysicalSize::new(cfg.width, cfg.height));
+                if config::exists() {
+                    let _ = window.set_position(tauri::PhysicalPosition::new(cfg.left, cfg.top));
+                    let _ = window.set_size(tauri::PhysicalSize::new(cfg.width, cfg.height));
+                } else {
+                    let _ = window.set_size(tauri::PhysicalSize::new(cfg.width, cfg.height));
+                    let _ = window.center();
+                }
                 let _ = window.set_always_on_top(cfg.always_on_top);
                 #[cfg(windows)]
                 let _ = window.set_background_color(Some(Color(30, 30, 30, 255)));

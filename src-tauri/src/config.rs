@@ -45,6 +45,10 @@ fn config_path() -> PathBuf {
     exe_dir().join(format!("{}.config", exe_stem()))
 }
 
+pub fn exists() -> bool {
+    config_path().exists()
+}
+
 pub fn load() -> Config {
     let path = config_path();
     if path.exists() {
