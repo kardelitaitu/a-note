@@ -548,58 +548,39 @@ html, body {
   min-width: 14px;
 }
 
-.menu-check {
-  width: 14px;
-  height: 14px;
-  border: 1.2px solid var(--check-border);
-  border-radius: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-#menu-wordwrap.on .menu-check::after,
-#menu-startup.on .menu-check::after {
-  content: '✓';
-  font-size: 11px;
-  color: var(--check-mark);
-}
-
 /* Menu pages */
 #menu-page-themes,
 #menu-page-titlebar,
-#menu-page-fonts,
-#menu-page-main {
-  visibility: visible;
-  opacity: 1;
-  transition: all 0.12s ease;
-}
-
-#menu-page-themes,
-#menu-page-titlebar,
 #menu-page-fonts {
-  visibility: hidden;
-  opacity: 0;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
+  display: none;
 }
 
-#menu-dropdown.show-themes #menu-page-themes,
-#menu-dropdown.show-titlebar #menu-page-titlebar,
-#menu-dropdown.show-fonts #menu-page-fonts {
-  visibility: visible;
-  opacity: 1;
-  pointer-events: auto;
+#menu-page-main {
+  display: block;
 }
 
-#menu-dropdown.show-themes #menu-page-main,
-#menu-dropdown.show-titlebar #menu-page-main,
+#menu-dropdown.show-themes #menu-page-main {
+  display: none;
+}
+
+#menu-dropdown.show-themes #menu-page-themes {
+  display: block;
+}
+
+#menu-dropdown.show-titlebar #menu-page-main {
+  display: none;
+}
+
+#menu-dropdown.show-titlebar #menu-page-titlebar {
+  display: block;
+}
+
 #menu-dropdown.show-fonts #menu-page-main {
-  visibility: hidden;
-  opacity: 0;
-  pointer-events: none;
+  display: none;
+}
+
+#menu-dropdown.show-fonts #menu-page-fonts {
+  display: block;
 }
 
 .menu-arrow {
