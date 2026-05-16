@@ -161,3 +161,391 @@ pub fn migrate_from_legacy() -> NoteData {
     data
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ── Format / serialization tests (no file I/O) ────────────────
+
+    #[test]
+    fn test_fresh_defaults() {
+        let data = fresh();
+        assert_eq!(data.version, 1);
+        assert!(!data.config.password_protected);
+        assert!(!data.note.encrypted);
+        assert!(data.note.text.is_empty());
+        assert!(data.log.is_empty());
+    }
+
+    #[test]
+    fn test_note_data_json_roundtrip() {
+        let mut cfg = crate::config::Config::default();
+        cfg.font_size = 24;
+        cfg.always_on_top = false;
+        cfg.theme = "dracula".to_string();
+
+        let nf = crate::note::NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: "hello from storage".to_string(),
+            cursor_pos: 5,
+            scroll_top: 2,
+        };
+
+        let data = NoteData {
+            version: 1,
+            config: cfg,
+            note: nf,
+            log: "[100] startup: started\n".to_string(),
+        };
+
+        let json = serde_json::to_string_pretty(&data).unwrap();
+        let restored: NoteData = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(restored.version, 1);
+        assert_eq!(restored.config.font_size, 24);
+        assert!(!restored.config.always_on_top);
+        assert_eq!(restored.config.theme, "dracula");
+        assert!(!restored.note.encrypted);
+        assert_eq!(restored.note.text, "hello from storage");
+        assert_eq!(restored.note.cursor_pos, 5);
+        assert_eq!(restored.note.scroll_top, 2);
+        assert!(restored.log.contains("startup"));
+    }
+
+    #[test]
+    fn test_note_data_with_encrypted_note_roundtrip() {
+        let key = [0xABu8; 32];
+        let note = crate::note::Note {
+            text: "encrypted in storage".to_string(),
+            cursor_pos: 10,
+            scroll_top: 3,
+        };
+        let nf = crate::note::NoteFile::from_encrypted(&note, &key).unwrap();
+
+        let data = NoteData {
+            version: 1,
+            config: crate::config::Config::default(),
+            note: nf,
+            log: String::new(),
+        };
+
+        let json = serde_json::to_string_pretty(&data).unwrap();
+        let restored: NoteData = serde_json::from_str(&json).unwrap();
+
+        assert!(restored.note.encrypted);
+        assert!(restored.note.nonce_hex.is_some());
+        assert!(restored.note.ciphertext_hex.is_some());
+        assert_eq!(restored.note.cursor_pos, 10);
+        assert_eq!(restored.note.scroll_top, 3);
+
+        // Decrypt and verify
+        let decrypted = restored.note.decrypt_to_note(&key).unwrap();
+        assert_eq!(decrypted.text, "encrypted in storage");
+    }
+
+    #[test]
+    fn test_note_data_missing_fields_defaults() {
+        // Simulate an old file that was written before config was part of NoteData
+        let json = r#"{"version":1,"config":{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true,"titlebar_fill":100},"note":{"text":"minimal","cursor_pos":0,"scroll_top":0},"log":""}"#;
+        let data: NoteData = serde_json::from_str(json).unwrap();
+        // Config should be populated with defaults for missing fields
+        assert_eq!(data.config.word_wrap, false);
+        assert_eq!(data.config.theme, "dark");
+        assert!(!data.config.password_protected);
+        // Note should have the text but defaults for missing fields
+        assert_eq!(data.note.text, "minimal");
+        assert!(!data.note.encrypted);
+    }
+
+    #[test]
+    fn test_note_data_version_field() {
+        // Version mismatch — still deserializes fine (we don't reject yet)
+        let json = r#"{"version":2,"config":{"width":300,"height":400,"left":100,"top":100,"font_size":14,"always_on_top":true,"titlebar_fill":100},"note":{"text":"v2","cursor_pos":0,"scroll_top":0},"log":""}"#;
+        let data: NoteData = serde_json::from_str(json).unwrap();
+        assert_eq!(data.version, 2);
+    }
+
+    // ── File I/O tests ────────────────────────────────────────────
+    // Note: these write/read from the actual exe directory because
+    // storage paths are determined by exe location. We clean up after
+    // ourselves. Serialized with a Mutex to avoid parallel contention.
+
+    use std::sync::Mutex;
+    static FILE_LOCK: Mutex<()> = Mutex::new(());
+
+    fn test_stem() -> String {
+        exe_stem()
+    }
+
+    fn test_dir() -> PathBuf {
+        exe_dir()
+    }
+
+    fn cleanup_test_files() {
+        let _ = std::fs::remove_file(test_dir().join(format!("{}.notes", test_stem())));
+        let _ = std::fs::remove_file(test_dir().join(format!("{}.config", test_stem())));
+        let _ = std::fs::remove_file(test_dir().join(format!("{}.log", test_stem())));
+    }
+
+    #[test]
+    fn test_save_and_load_roundtrip() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        let mut cfg = crate::config::Config::default();
+        cfg.width = 500;
+        cfg.height = 600;
+        cfg.font_family = "Fira Code".to_string();
+
+        let data = NoteData {
+            version: 1,
+            config: cfg,
+            note: crate::note::NoteFile {
+                encrypted: false,
+                nonce_hex: None,
+                ciphertext_hex: None,
+                text: "storage test".to_string(),
+                cursor_pos: 7,
+                scroll_top: 1,
+            },
+            log: "[100] test: log entry\n".to_string(),
+        };
+
+        save(&data);
+        assert!(exists(), "combined file should exist after save");
+
+        let loaded = load();
+        assert_eq!(loaded.version, 1);
+        assert_eq!(loaded.config.width, 500);
+        assert_eq!(loaded.config.height, 600);
+        assert_eq!(loaded.note.text, "storage test");
+        assert_eq!(loaded.note.cursor_pos, 7);
+        assert!(loaded.log.contains("test"));
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_load_nonexistent_returns_fresh() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+        // Make sure no combined file exists
+        let _ = std::fs::remove_file(notes_path());
+        let data = load();
+        assert_eq!(data.version, 1);
+        assert!(!data.config.password_protected);
+        assert!(data.note.text.is_empty());
+    }
+
+    #[test]
+    fn test_load_corrupt_returns_fresh() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+        // Write corrupt content
+        std::fs::write(&notes_path(), "not valid json at all").unwrap();
+        let data = load();
+        assert_eq!(data.version, 1);
+        assert!(data.note.text.is_empty());
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_helper_functions_roundtrip() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Save config via helper
+        let mut cfg = crate::config::Config::default();
+        cfg.font_size = 30;
+        save_config(&cfg);
+
+        // Save note via helper
+        let nf = crate::note::NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: "helper test".to_string(),
+            cursor_pos: 3,
+            scroll_top: 9,
+        };
+        save_note_file(&nf);
+
+        // Load config
+        let loaded_cfg = load_config();
+        assert_eq!(loaded_cfg.font_size, 30);
+
+        // Load note
+        let loaded_nf = load_note_file();
+        assert_eq!(loaded_nf.text, "helper test");
+        assert_eq!(loaded_nf.scroll_top, 9);
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_save_config_and_note_atomic() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        let cfg = crate::config::Config {
+            always_on_top: false,
+            font_size: 18,
+            ..crate::config::Config::default()
+        };
+        let nf = crate::note::NoteFile {
+            encrypted: true,
+            nonce_hex: Some("aabbccdd".to_string()),
+            ciphertext_hex: Some("11223344".to_string()),
+            text: String::new(),
+            cursor_pos: 42,
+            scroll_top: 0,
+        };
+
+        save_config_and_note(&cfg, &nf);
+
+        let loaded = load();
+        assert!(!loaded.config.always_on_top);
+        assert_eq!(loaded.config.font_size, 18);
+        assert!(loaded.note.encrypted);
+        assert_eq!(loaded.note.cursor_pos, 42);
+
+        cleanup_test_files();
+    }
+
+    // ── Migration tests ───────────────────────────────────────────
+    //
+    // These simulate the old v0.1.x files, run migration, verify the
+    // combined file, and clean up.
+
+    #[test]
+    fn test_migrate_from_legacy_basic() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Write old config file
+        let old_config = r#"{
+            "width": 400,
+            "height": 500,
+            "left": 50,
+            "top": 60,
+            "font_size": 18,
+            "always_on_top": true,
+            "theme": "nord"
+        }"#;
+        let cfg_path = test_dir().join(format!("{}.config", test_stem()));
+        std::fs::write(&cfg_path, old_config).unwrap();
+
+        // Write old notes file
+        let old_notes = r#"{"text":"legacy note content","cursor_pos":12,"scroll_top":5}"#;
+        let notes_path_old = test_dir().join(format!("{}.notes", test_stem()));
+        std::fs::write(&notes_path_old, old_notes).unwrap();
+
+        // Write old log file
+        let old_log = "[100] startup: started\n[200] password: set\n";
+        let log_path = test_dir().join(format!("{}.log", test_stem()));
+        std::fs::write(&log_path, old_log).unwrap();
+
+        // Verify legacy exists (old .config file is the migration trigger)
+        assert!(legacy_exists());
+
+        // Run migration
+        let data = migrate_from_legacy();
+
+        // Check migrated data
+        assert_eq!(data.version, 1);
+        assert_eq!(data.config.width, 400);
+        assert_eq!(data.config.theme, "nord");
+        assert_eq!(data.note.text, "legacy note content");
+        assert_eq!(data.note.cursor_pos, 12);
+        assert_eq!(data.note.scroll_top, 5);
+        assert!(data.log.contains("startup"));
+        assert!(data.log.contains("password"));
+
+        // Old files should be deleted
+        assert!(!cfg_path.exists(), "old .config should be deleted");
+        assert!(!log_path.exists(), "old .log should be deleted");
+        // Combined file exists
+        assert!(exists());
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_migrate_from_legacy_encrypted() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Create an encrypted note scenario
+        let salt = crate::crypto::generate_salt();
+        let key = crate::crypto::derive_key("migration-test", &salt).unwrap();
+        let note = crate::note::Note {
+            text: "migration secret".to_string(),
+            cursor_pos: 7,
+            scroll_top: 3,
+        };
+        let nf = crate::note::NoteFile::from_encrypted(&note, &key).unwrap();
+        let nf_json = serde_json::to_string(&nf).unwrap();
+
+        // Write old config with password (serialized properly)
+        let mut old_cfg = crate::config::Config::default();
+        old_cfg.password_protected = true;
+        old_cfg.password_salt = hex::encode(salt);
+        let cfg_json = serde_json::to_string_pretty(&old_cfg).unwrap();
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            &cfg_json,
+        )
+        .unwrap();
+
+        std::fs::write(
+            test_dir().join(format!("{}.notes", test_stem())),
+            &nf_json,
+        )
+        .unwrap();
+
+        std::fs::write(
+            test_dir().join(format!("{}.log", test_stem())),
+            "",
+        )
+        .unwrap();
+
+        // Migrate
+        let data = migrate_from_legacy();
+
+        assert!(data.config.password_protected);
+        assert!(!data.config.password_salt.is_empty());
+        assert!(data.note.encrypted);
+
+        // Decrypt the migrated note
+        let migrated_key = crate::crypto::derive_key(
+            "migration-test",
+            &hex::decode(&data.config.password_salt).unwrap(),
+        )
+        .unwrap();
+        let decrypted = data.note.decrypt_to_note(&migrated_key).unwrap();
+        assert_eq!(decrypted.text, "migration secret");
+        assert_eq!(decrypted.cursor_pos, 7);
+        assert_eq!(decrypted.scroll_top, 3);
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_migrate_from_legacy_no_old_files_uses_defaults() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+        // Don't create any old files — migrate should still work
+        // with defaults for config, empty note, empty log
+        let data = migrate_from_legacy();
+        assert_eq!(data.version, 1);
+        // Config should have defaults
+        assert_eq!(data.config.font_size, 14);
+        // Note should be loaded from whatever exists (fresh default)
+        assert!(data.note.text.is_empty());
+        // Combined file should exist after migration
+        assert!(exists());
+        cleanup_test_files();
+    }
+}
