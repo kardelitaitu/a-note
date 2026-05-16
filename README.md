@@ -5,15 +5,34 @@
 <h1 align="center">a-note</h1>
 
 <p align="center">
-  <strong>~9 MB · Zero install · Portable · Encrypted</strong>
+  <strong>Your notes app that travels with you.</strong>
 </p>
 
 <p align="center">
-  A sticky notes app that lives in a single `.exe` — no installers, no dependencies, no config files scattered across your system. Every note can be password-protected with AES-256-GCM encryption.
+  <img src="https://img.shields.io/badge/tests-205%20passing-brightgreen" alt="tests">
+  <img src="https://img.shields.io/badge/Rust-1.70%2B-DEA584?logo=rust&logoColor=white" alt="Rust">
+  <img src="https://img.shields.io/badge/Tauri-v2-24C8DB?logo=tauri&logoColor=white" alt="Tauri v2">
+  <img src="https://img.shields.io/badge/platform-Windows-0078D6?logo=windows11&logoColor=white" alt="Windows">
+  <img src="https://img.shields.io/github/v/release/kardelitaitu/a-note?sort=semver&label=version" alt="Version">
+  <img src="https://img.shields.io/github/downloads/kardelitaitu/a-note/total?label=downloads" alt="Downloads">
+  <img src="https://img.shields.io/github/license/kardelitaitu/a-note" alt="License">
 </p>
 
 <p align="center">
-  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0">⬇ Download for Windows Latest (v0.2.0)</a>
+  Keep notes, settings, and security in one local file beside the app,
+  with no installer and no cloud dependency.
+</p>
+
+<p align="center">
+  <strong>Auto Start for instant availability · Always on Top toggle for active workflows.</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0">Download latest release</a>
+  ·
+  <a href="src/preview.mp4">Watch full preview (MP4)</a>
+  ·
+  <a href="#build-from-source">Build from source</a>
 </p>
 
 <p align="center">
@@ -24,46 +43,37 @@
 
 ---
 
-**Drop it anywhere, run it.** Config and notes save right next to the `.exe` in a single `.notes` file. Rename the file to anything — data files follow. Move the folder to another machine and everything goes with you: notes, window position, font size, pin state, encryption settings.
+## Overview
 
-Built with Rust + Tauri v2. No Electron. No bloat.
+a-note is designed for reliable personal note-taking with a minimal operational footprint.
+Application state is kept next to the executable so it remains portable across folders and machines.
+Password-protected notes use authenticated encryption and are never sent over the network.
 
-## Features
+## Feature Highlights
 
-| | |
+| Capability | Details |
 |---|---|
-| 🔒 **AES-256-GCM encryption** | Password-protect notes with Argon2id key derivation |
-| ⏰ **Auto-lock timer** | Configurable timeout — note locks after inactivity |
-|| 🎨 **15 themes** | Dark, light, dracula, nord, catppuccin, gruvbox, solarized, and more |
-|| 🎯 **Custom titlebar color** | Native color picker with fill slider (0–100%) |
-|| ✅ **Confirm password** | Two-field password entry ensures no typos on set/change |
-| 📌 **Always on top** | Toggle pin to keep the window above everything |
-| ⌨️ **Ctrl+Scroll** | Zoom font size 8–72px in real time |
-| 💾 **Auto-save** | 5s after you stop typing, also on minimize/close/pin toggle |
-| 📝 **Word wrap** | Toggle in the hamburger menu |
-| 🖱️ **Double-click** | Selects the entire line, preserves scroll position |
-| 🪟 **Frameless** | Dark theme, clean monospace editor, slim scrollbar |
-|| 📁 **Portable** | One `.exe`, one `.notes` file. Move anywhere. |
-| 🏷️ **Smart title** | Title bar shows the `.exe` filename — rename freely |
-| 🔒 **Hidden-safe** | Files keep their hidden attribute when rewritten |
-| 📋 **Crash logging** | Panics captured to `{exe}.crash` — no silent failures |
+| Portable runtime | Single executable with local `.notes` data file |
+| Encryption at rest | AES-256-GCM for note ciphertext |
+| Key derivation | Argon2id with per-password random salt |
+| Password lifecycle | Set, change, remove, lock, and unlock flows |
+| Auto-lock | Inactivity timeout with configurable duration |
+| Editing experience | Word wrap, zoom, line select, and autosave |
+| UI customization | Multiple themes, font options, title bar color |
+| Desktop behavior | Always-on-top mode and startup option |
+| Diagnostics | Local crash/event logging |
 
-## Security
+## Security Model
 
-- **Encryption:** AES-256-GCM with random 12-byte nonces (unique per encryption)
-- **Key derivation:** Argon2id with random 16-byte salt
-- **Tamper detection:** GCM authentication tag — bit flips, truncation, and corruption are all detected
-- **In-memory key:** Decryption key cached only in RAM, cleared on lock or close
-- **Config auto-repair:** If config is corrupted, password protection resets gracefully
-- **No telemetry:** All logs stay local — zero network calls
+- Encryption: AES-256-GCM with random nonce generation per encryption.
+- Password derivation: Argon2id with random 16-byte salt.
+- Tamper detection: authentication tag validation detects corruption and modification.
+- Key handling: decryption key stays in memory and is cleared on lock/close.
+- Data locality: logs and notes remain local to the machine.
 
 ## Download
 
-**[⬇ Download notes.exe (v0.2.0)](https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0)**
-
-No installation. No setup. Run it.
-
-Older releases: [v0.1.3](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.3)
+Latest release: [notes.exe v0.2.0](https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0)
 
 ## Build from source
 
@@ -83,41 +93,40 @@ cargo tauri build
 # Output: src-tauri/target/release/notes(.exe)
 ```
 
-Linux requires additional system libraries — see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Linux may require additional system libraries. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Mobile (Android / iOS)
 
-Experimental Tauri v2 mobile support — see [CONTRIBUTING.md](CONTRIBUTING.md).
+Experimental Tauri v2 mobile support is documented in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Testing
 
 ```bash
-# 191 tests across unit, integration, and property-based suites
 cd src-tauri
-cargo test --lib              # 169 unit tests
-cargo test --test encryption  # 14 integration tests
-cargo test --test property    # 8 property-based tests (proptest)
+cargo test --lib
+cargo test --test encryption
+cargo test --test property
 ```
 
-## Stack
+## Technology Stack
 
 | Layer | Technology |
 |---|---|
 | Backend | Rust + Tauri v2 |
-| Crypto | AES-256-GCM (aes-gcm) + Argon2id (argon2) |
-| Frontend | Vanilla JS + Vite |
-| Styling | CSS custom properties (15 themes) |
-| Persistence | JSON files next to `.exe` |
+| Crypto | AES-256-GCM + Argon2id |
+| Frontend | Vanilla JavaScript + Vite |
+| Styling | CSS custom properties |
+| Persistence | Local JSON beside executable |
 | Testing | cargo test + proptest |
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) — includes setup guides for Windows, macOS, Linux, and mobile.
+Development setup and platform notes are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 ## Changelog
 
-See [CHANGELOG.md](CHANGELOG.md) for version history.
+Release history is tracked in [CHANGELOG.md](CHANGELOG.md).
