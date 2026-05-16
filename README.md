@@ -16,6 +16,10 @@
   <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0">⬇ Download notes.exe (v0.2.0)</a>
 </p>
 
+<p align="center">
+  <a href="src/preview.mp4">🎬 Watch app preview (MP4)</a>
+</p>
+
 ---
 
 **Drop it anywhere, run it.** Config and notes save right next to the `.exe` in a single `.notes` file. Rename the file to anything — data files follow. Move the folder to another machine and everything goes with you: notes, window position, font size, pin state, encryption settings.
