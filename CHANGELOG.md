@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.3.0 — 2026-05-16
+
+### Added
+- **242 tests** (200 lib + 24 integration + 18 property-based): 46 new tests across diagnostics (+8), storage (+12), lib (+6), encryption (+10), and property (+10)
+- **Success toasts**: user-visible notifications for Note Autosaved, Font Saved, Theme saved, Autostart Enabled/Disabled, Note Encrypted, Titlebar Color Changed, Always On Top Enabled/Disabled
+- **Toast cooldown**: same-message spam protection (2s window)
+- **`src/paths.rs`** — shared path module eliminates 6 duplicate copies of `exe_stem()`/`exe_dir()`
+- **`AppState` helper methods** — `get_key()`, `set_key()`, `clear_key()` simplify 6 lock/unlock callers
+- **UI animations**:
+  - Menu dropdown: fade + slide down (0.15s ease-out)
+  - Lock/password overlays: backdrop fade + card scale (0.2s)
+  - Toast: slide up 8px + fade (0.25s)
+  - Theme switch: smooth background/color on overlays, buttons, menu (0.2s)
+- **Delayed submenu reset**: closing menu from a submenu waits for fade-out before swapping pages, preventing main-menu flash
+
+### Fixed
+- Submenu pages now use `display: none/block` (no cross-fade ghosting during transition)
+- `closeMenu()` guard: skips if menu already closed (avoids unnecessary 150ms timers on every click)
+- `closeMenu()` now clears all 3 submenu classes (`show-fonts` was missing)
+- Body transition removed from theme hover preview (was causing sluggish hover response)
+
+### Removed
+- Dead storage wrappers: `load_config()`, `save_config()`, `load_note_file()`, `save_note_file()`, `save_config_and_note()`
+- `config::save()` — unused after combined storage migration
+- Duplicate CSS blocks for `.menu-check` and `#menu-wordwrap.on` / `#menu-startup.on`
+
+### Changed
+- Autosave debounce reduced from 5s to 2s
+- Build command: removed unsupported Vite `--configLoader runner` flag
+- README rewritten with Quick Start table and portable-first tagline
+- All test data files (`property.proptest-regressions`) committed
+
 ## 0.2.0 — 2026-05-16
 
 ### Added
