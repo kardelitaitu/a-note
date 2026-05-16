@@ -303,8 +303,8 @@ function tickScroll() {
   ss.velocity *= 0.88;
   let top = editor.scrollTop + ss.velocity;
   const maxScroll = editor.scrollHeight - editor.clientHeight;
-  if (top < 0) { top = 0; ss.velocity *= -0.3; }
-  else if (top > maxScroll) { top = maxScroll; ss.velocity *= -0.3; }
+  if (top < 0) { top = 0; ss.velocity = 0; }
+  else if (top > maxScroll) { top = maxScroll; ss.velocity = 0; }
   editor.scrollTop = top;
   if (Math.abs(ss.velocity) < 0.5) {
     ss.animating = false;

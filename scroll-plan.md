@@ -212,7 +212,7 @@ body, textarea, #editor, #menu-dropdown button {
 | Friction | 0.88 | Higher = longer glide |
 | Velocity cap | 60 | Max px/frame from wheel |
 | Wheel dampen | 0.3 | Input sensitivity |
-| Bounce rebound | -0.3 | 0.0 = no bounce, 1.0 = full |
+| Bounce rebound | 0.0 | No bounce — clean stop at boundary |
 | Stop threshold | 0.5 | px/frame below which scrolling stops |
 | Key scroll duration | 100 | ms for arrow/page key animation |
 | Key ease | cubic-out | `1-(1-t)^3` |
