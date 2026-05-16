@@ -501,6 +501,7 @@ btnMenu.addEventListener("click", (e) => {
 });
 
 function closeMenu() {
+  if (!menuDropdown.classList.contains("open")) return;
   menuDropdown.classList.remove("open");
   document.body.className = "theme-" + config.theme;
   // Wait for dropdown fade-out (0.15s) before resetting submenu page,
