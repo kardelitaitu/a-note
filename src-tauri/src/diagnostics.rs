@@ -5,24 +5,9 @@
 //!   `flush_to_log_str()` / `restore_from_log_str()`
 //! - No network calls — all data stays local on disk.
 
-use std::path::PathBuf;
 use std::sync::Mutex;
 
 static LOG_BUF: Mutex<Option<String>> = Mutex::new(None);
-
-fn exe_stem() -> String {
-    std::env::current_exe()
-        .ok()
-        .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
-        .unwrap_or_else(|| "notes".to_string())
-}
-
-fn exe_dir() -> PathBuf {
-    std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
-        .unwrap_or_else(|| PathBuf::from("."))
-}
 
 /// Initialise the crash reporter.
 ///
@@ -31,8 +16,8 @@ fn exe_dir() -> PathBuf {
 pub fn init() {
     let prev = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
-        let stem = exe_stem();
-        let dir = exe_dir();
+        let stem = crate::paths::exe_stem();
+        let dir = crate::paths::exe_dir();
         let bt = std::backtrace::Backtrace::capture();
         let report = format!(
             "=== CRASH ===\nTime: {}\nPanic: {}\n\nBacktrace:\n{:?}\n",

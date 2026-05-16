@@ -2,6 +2,7 @@ pub mod config;
 pub mod crypto;
 pub mod diagnostics;
 pub mod note;
+pub mod paths;
 pub mod storage;
 pub mod tray;
 pub mod util;
@@ -15,6 +16,36 @@ use tauri::Manager;
 /// Cleared on `lock()` or when the lock timer fires.
 struct AppState {
     encryption_key: Mutex<Option<[u8; 32]>>,
+}
+
+impl AppState {
+    /// Borrow the cached encryption key (read-only).
+    fn get_key(&self) -> Result<Option<[u8; 32]>, String> {
+        self.encryption_key
+            .lock()
+            .map(|g| g.clone())
+            .map_err(|e| format!("lock error: {e}"))
+    }
+
+    /// Store a derived encryption key.
+    fn set_key(&self, key: [u8; 32]) -> Result<(), String> {
+        let mut guard = self
+            .encryption_key
+            .lock()
+            .map_err(|e| format!("lock error: {e}"))?;
+        *guard = Some(key);
+        Ok(())
+    }
+
+    /// Clear the cached encryption key (lock).
+    fn clear_key(&self) -> Result<(), String> {
+        let mut guard = self
+            .encryption_key
+            .lock()
+            .map_err(|e| format!("lock error: {e}"))?;
+        *guard = None;
+        Ok(())
+    }
 }
 
 #[tauri::command]
@@ -169,12 +200,9 @@ fn save_note(
     let mut data = storage::try_load()?;
 
     if data.config.password_protected {
-        let key_guard = state
-            .encryption_key
-            .lock()
-            .map_err(|e| format!("lock error: {e}"))?;
-        if let Some(key) = key_guard.as_ref() {
-            let nf = note::NoteFile::from_encrypted(&note, key)?;
+        let key = state.get_key()?;
+        if let Some(key) = key {
+            let nf = note::NoteFile::from_encrypted(&note, &key)?;
             data.note = nf;
             data.log = diagnostics::flush_to_log_str();
             storage::save(&data)
@@ -237,12 +265,7 @@ fn set_password(
     data.log = diagnostics::flush_to_log_str();
     storage::save(&data)?;
 
-    // Cache the key
-    let mut key_guard = state
-        .encryption_key
-        .lock()
-        .map_err(|e| format!("lock error: {e}"))?;
-    *key_guard = Some(key);
+    state.set_key(key)?;
 
     diagnostics::event("password", "Password set");
     Ok(())
@@ -270,12 +293,7 @@ fn unlock(
 
     let decrypted = nf.decrypt_to_note(&key)?;
 
-    // Cache the key
-    let mut key_guard = state
-        .encryption_key
-        .lock()
-        .map_err(|e| format!("lock error: {e}"))?;
-    *key_guard = Some(key);
+    state.set_key(key)?;
 
     diagnostics::event("unlock", "Note unlocked");
     Ok(UnlockResult {
@@ -289,11 +307,7 @@ fn unlock(
 /// Lock the note: clear the cached encryption key.
 #[tauri::command]
 fn lock(state: tauri::State<'_, AppState>) -> Result<(), String> {
-    let mut key_guard = state
-        .encryption_key
-        .lock()
-        .map_err(|e| format!("lock error: {e}"))?;
-    *key_guard = None;
+    state.clear_key()?;
     diagnostics::event("lock", "Note locked");
     Ok(())
 }
@@ -334,12 +348,7 @@ fn remove_password(
     data.log = diagnostics::flush_to_log_str();
     storage::save(&data)?;
 
-    // Clear cached key
-    let mut key_guard = state
-        .encryption_key
-        .lock()
-        .map_err(|e| format!("lock error: {e}"))?;
-    *key_guard = None;
+    state.clear_key()?;
 
     diagnostics::event("password", "Password removed");
     Ok(())
@@ -384,12 +393,7 @@ fn change_password(
     data.log = diagnostics::flush_to_log_str();
     storage::save(&data)?;
 
-    // Cache new key
-    let mut key_guard = state
-        .encryption_key
-        .lock()
-        .map_err(|e| format!("lock error: {e}"))?;
-    *key_guard = Some(new_key);
+    state.set_key(new_key)?;
 
     diagnostics::event("password", "Password changed");
     Ok(())
@@ -397,10 +401,7 @@ fn change_password(
 
 #[tauri::command]
 fn get_app_name() -> String {
-    std::env::current_exe()
-        .ok()
-        .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
-        .unwrap_or_else(|| "Notes".to_string())
+    crate::paths::exe_stem()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -425,10 +426,7 @@ pub fn run() {
             let data = storage::load();
             let cfg = data.config;
 
-            let exe_name = std::env::current_exe()
-                .ok()
-                .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
-                .unwrap_or_else(|| "Notes".to_string());
+            let exe_name = crate::paths::exe_stem();
             let tray_color = if cfg.titlebar_color.is_empty() {
                 "#5dade2"
             } else {
@@ -478,27 +476,11 @@ mod tests {
     use std::path::PathBuf;
 
     fn notes_path() -> PathBuf {
-        let exe = std::env::current_exe().expect("failed to get exe path");
-        exe.parent()
-            .expect("failed to get exe parent")
-            .join(format!(
-                "{}.notes",
-                exe.file_stem()
-                    .expect("failed to get exe stem")
-                    .to_string_lossy()
-            ))
+        crate::paths::notes_path()
     }
 
     fn legacy_config_path() -> PathBuf {
-        let exe = std::env::current_exe().expect("failed to get exe path");
-        exe.parent()
-            .expect("failed to get exe parent")
-            .join(format!(
-                "{}.config",
-                exe.file_stem()
-                    .expect("failed to get exe stem")
-                    .to_string_lossy()
-            ))
+        crate::paths::legacy_config_path()
     }
 
     fn cleanup_notes_file() {

@@ -24,30 +24,16 @@ const CURRENT_VERSION: u32 = 1;
 #[cfg(test)]
 pub(crate) static STORAGE_TEST_FILE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
 
-fn exe_stem() -> String {
-    std::env::current_exe()
-        .ok()
-        .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
-        .unwrap_or_else(|| "notes".to_string())
-}
-
-fn exe_dir() -> PathBuf {
-    std::env::current_exe()
-        .ok()
-        .and_then(|p| p.parent().map(|d| d.to_path_buf()))
-        .unwrap_or_else(|| PathBuf::from("."))
-}
-
 fn notes_path() -> PathBuf {
-    exe_dir().join(format!("{}.notes", exe_stem()))
+    crate::paths::notes_path()
 }
 
 fn legacy_config_path() -> PathBuf {
-    exe_dir().join(format!("{}.config", exe_stem()))
+    crate::paths::legacy_config_path()
 }
 
 fn legacy_log_path() -> PathBuf {
-    exe_dir().join(format!("{}.log", exe_stem()))
+    crate::paths::legacy_log_path()
 }
 
 /// Check if the combined notes file already exists.
@@ -115,43 +101,6 @@ pub fn save(data: &NoteData) -> Result<(), String> {
     let json = serde_json::to_string_pretty(data)
         .map_err(|e| format!("failed to serialize notes data: {e}"))?;
     crate::util::write(&notes_path(), &json)
-}
-/// Load just the config from the combined file.
-pub fn load_config() -> crate::config::Config {
-    load().config
-}
-
-/// Save config through the combined file, flushing diagnostics log.
-pub fn save_config(cfg: &crate::config::Config) -> Result<(), String> {
-    let mut data = try_load()?;
-    data.config = cfg.clone();
-    data.log = crate::diagnostics::flush_to_log_str();
-    save(&data)
-}
-
-/// Load just the NoteFile from the combined file.
-pub fn load_note_file() -> crate::note::NoteFile {
-    load().note
-}
-
-/// Save NoteFile through the combined file, flushing diagnostics log.
-pub fn save_note_file(nf: &crate::note::NoteFile) -> Result<(), String> {
-    let mut data = try_load()?;
-    data.note = nf.clone();
-    data.log = crate::diagnostics::flush_to_log_str();
-    save(&data)
-}
-
-/// Atomically save both config and NoteFile (used by password operations).
-pub fn save_config_and_note(
-    cfg: &crate::config::Config,
-    nf: &crate::note::NoteFile,
-) -> Result<(), String> {
-    let mut data = try_load()?;
-    data.config = cfg.clone();
-    data.note = nf.clone();
-    data.log = crate::diagnostics::flush_to_log_str();
-    save(&data)
 }
 
 /// Create a fresh NoteData with defaults.
@@ -330,11 +279,11 @@ mod tests {
     use super::STORAGE_TEST_FILE_LOCK as FILE_LOCK;
 
     fn test_stem() -> String {
-        exe_stem()
+        crate::paths::exe_stem()
     }
 
     fn test_dir() -> PathBuf {
-        exe_dir()
+        crate::paths::exe_dir()
     }
 
     fn cleanup_test_files() {
@@ -513,69 +462,6 @@ mod tests {
         assert!(!loaded.config.password_protected);
         assert!(loaded.config.password_salt.is_empty(), "stale salt should be removed");
         assert!(!loaded.note.encrypted);
-
-        cleanup_test_files();
-    }
-
-    #[test]
-    fn test_helper_functions_roundtrip() {
-        let _lock = FILE_LOCK.lock().unwrap();
-        cleanup_test_files();
-
-        // Save config via helper
-        let mut cfg = crate::config::Config::default();
-        cfg.font_size = 30;
-        save_config(&cfg).unwrap();
-
-        // Save note via helper
-        let nf = crate::note::NoteFile {
-            encrypted: false,
-            nonce_hex: None,
-            ciphertext_hex: None,
-            text: "helper test".to_string(),
-            cursor_pos: 3,
-            scroll_top: 9,
-        };
-        save_note_file(&nf).unwrap();
-
-        // Load config
-        let loaded_cfg = load_config();
-        assert_eq!(loaded_cfg.font_size, 30);
-
-        // Load note
-        let loaded_nf = load_note_file();
-        assert_eq!(loaded_nf.text, "helper test");
-        assert_eq!(loaded_nf.scroll_top, 9);
-
-        cleanup_test_files();
-    }
-
-    #[test]
-    fn test_save_config_and_note_atomic() {
-        let _lock = FILE_LOCK.lock().unwrap();
-        cleanup_test_files();
-
-        let cfg = crate::config::Config {
-            always_on_top: false,
-            font_size: 18,
-            ..crate::config::Config::default()
-        };
-        let nf = crate::note::NoteFile {
-            encrypted: true,
-            nonce_hex: Some("aabbccdd".to_string()),
-            ciphertext_hex: Some("11223344".to_string()),
-            text: String::new(),
-            cursor_pos: 42,
-            scroll_top: 0,
-        };
-
-        save_config_and_note(&cfg, &nf).unwrap();
-
-        let loaded = load();
-        assert!(!loaded.config.always_on_top);
-        assert_eq!(loaded.config.font_size, 18);
-        assert!(loaded.note.encrypted);
-        assert_eq!(loaded.note.cursor_pos, 42);
 
         cleanup_test_files();
     }

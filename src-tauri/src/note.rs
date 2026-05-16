@@ -13,25 +13,8 @@ pub struct Note {
     pub scroll_top: u32,
 }
 
-fn exe_stem() -> String {
-    std::env::current_exe()
-        .expect("failed to get exe path")
-        .file_stem()
-        .expect("failed to get exe stem")
-        .to_string_lossy()
-        .to_string()
-}
-
-fn exe_dir() -> PathBuf {
-    std::env::current_exe()
-        .expect("failed to get exe path")
-        .parent()
-        .expect("failed to get exe parent")
-        .to_path_buf()
-}
-
 fn note_path() -> PathBuf {
-    exe_dir().join(format!("{}.notes", exe_stem()))
+    crate::paths::notes_path()
 }
 
 pub fn load() -> Note {

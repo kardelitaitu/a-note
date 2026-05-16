@@ -67,25 +67,8 @@ impl Default for Config {
     }
 }
 
-fn exe_stem() -> String {
-    std::env::current_exe()
-        .expect("failed to get exe path")
-        .file_stem()
-        .expect("failed to get exe stem")
-        .to_string_lossy()
-        .to_string()
-}
-
-fn exe_dir() -> PathBuf {
-    std::env::current_exe()
-        .expect("failed to get exe path")
-        .parent()
-        .expect("failed to get exe parent")
-        .to_path_buf()
-}
-
 fn config_path() -> PathBuf {
-    exe_dir().join(format!("{}.config", exe_stem()))
+    crate::paths::exe_dir().join(format!("{}.config", crate::paths::exe_stem()))
 }
 
 pub fn exists() -> bool {
@@ -102,12 +85,6 @@ pub fn load() -> Config {
     } else {
         Config::default()
     }
-}
-
-pub fn save(config: &Config) -> Result<(), String> {
-    let json = serde_json::to_string_pretty(config)
-        .map_err(|e| format!("failed to serialize config: {e}"))?;
-    crate::util::write(&config_path(), &json)
 }
 
 #[cfg(test)]

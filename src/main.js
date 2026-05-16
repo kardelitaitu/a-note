@@ -11,6 +11,16 @@ const menuWordwrap = document.getElementById("menu-wordwrap");
 const menuStartup = document.getElementById("menu-startup");
 let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false, theme: "dark", titlebar_color: "", titlebar_fill: 100 };
 
+// ── Toast notification ─────────────────────────────────
+function showToast(msg, isError) {
+  const bar = document.getElementById("toast-bar");
+  if (!bar) return;
+  bar.textContent = msg;
+  bar.className = isError ? "error" : "";
+  bar.classList.remove("hidden");
+  setTimeout(() => bar.classList.add("hidden"), 3000);
+}
+
 // Lock state
 let decryptedText = "";
 let lockTimer = null;
@@ -58,7 +68,7 @@ async function loadConfig() {
     applyStartupState();
     applyFont();
   } catch (e) {
-    console.error("load_config failed:", e);
+    showToast("Failed to load settings", true);
   }
 }
 
@@ -186,7 +196,7 @@ async function saveConfig() {
   try {
     await invoke("save_config", { cfg: config });
   } catch (e) {
-    console.error("save_config failed:", e);
+    showToast("Failed to save settings", true);
   }
 }
 
@@ -214,7 +224,7 @@ async function loadNote() {
       startLockTimer();
     }
   } catch (e) {
-    console.error("load_note failed:", e);
+    showToast("Failed to load note", true);
   }
 }
 
@@ -229,7 +239,7 @@ async function saveNote() {
       },
     });
   } catch (e) {
-    console.error("save_note failed:", e);
+    showToast("Failed to save note", true);
   }
 }
 
@@ -237,7 +247,7 @@ async function saveNote() {
 let saveTimer;
 editor.addEventListener("input", () => {
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(saveNote, 5000);
+  saveTimer = setTimeout(saveNote, 2000);
   resetLockTimer(); // Reset lock timer on user activity
 });
 
@@ -375,7 +385,7 @@ async function lockNow() {
   try {
     await invoke("lock");
   } catch (e) {
-    console.error("lock failed:", e);
+    showToast("Failed to lock", true);
   }
 }
 
@@ -565,7 +575,7 @@ menuStartup.addEventListener("click", () => {
     config.start_with_windows = enabled;
     applyStartupState();
   }).catch((e) => {
-    console.error("set_start_with_windows failed:", e);
+    showToast("Failed to update Auto Start", true);
   });
   closeMenu();
 });

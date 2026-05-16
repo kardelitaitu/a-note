@@ -922,3 +922,28 @@ html, body {
 #pwd-cancel:hover {
   opacity: 0.8;
 }
+
+/* ── Toast notification bar ─────────────────────────── */
+#toast-bar {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #333;
+  color: #eee;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 13px;
+  z-index: 9999;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transition: opacity 0.3s ease;
+}
+#toast-bar.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+#toast-bar.error {
+  background: #c0392b;
+  color: #fff;
+}
