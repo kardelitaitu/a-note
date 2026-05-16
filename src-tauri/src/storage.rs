@@ -679,4 +679,346 @@ mod tests {
         assert!(exists());
         cleanup_test_files();
     }
+
+    // ── Additional coverage tests ─────────────────────────────────
+
+    #[test]
+    fn test_migrate_corrupt_config() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Write legacy config with invalid JSON
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            "this is not json at all",
+        )
+        .unwrap();
+        // No .notes or .log files — migration should use defaults
+
+        let data = migrate_from_legacy();
+        assert_eq!(data.version, CURRENT_VERSION);
+        // Config should be default since corrupt JSON falls back to default
+        assert_eq!(data.config.font_size, 14);
+        assert!(!data.config.password_protected);
+        assert!(data.note.text.is_empty());
+        assert!(data.log.is_empty());
+        assert!(exists());
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_migrate_corrupt_note() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Write a valid legacy config
+        let cfg = r#"{"width":400,"height":500,"left":50,"top":60,"font_size":18,"always_on_top":true}"#;
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            cfg,
+        )
+        .unwrap();
+
+        // Write a corrupt legacy .notes file
+        std::fs::write(
+            test_dir().join(format!("{}.notes", test_stem())),
+            "not valid note json",
+        )
+        .unwrap();
+
+        // No .log file
+
+        let data = migrate_from_legacy();
+        assert_eq!(data.version, CURRENT_VERSION);
+        // Config should be preserved from the valid file
+        assert_eq!(data.config.width, 400);
+        // Note should fall back to default (empty) because corrupt
+        assert!(data.note.text.is_empty());
+        assert!(!data.note.encrypted);
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_migrate_empty_legacy_files() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Write empty legacy files
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            "",
+        )
+        .unwrap();
+        std::fs::write(
+            test_dir().join(format!("{}.notes", test_stem())),
+            "",
+        )
+        .unwrap();
+        std::fs::write(
+            test_dir().join(format!("{}.log", test_stem())),
+            "",
+        )
+        .unwrap();
+
+        let data = migrate_from_legacy();
+        assert_eq!(data.version, CURRENT_VERSION);
+        // Empty config → defaults, empty notes → defaults, empty log → empty string
+        assert!(!data.config.password_protected);
+        assert!(data.note.text.is_empty());
+        assert!(data.log.is_empty());
+        assert!(exists());
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_migrate_protected_no_salt() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Write legacy config with password_protected=true but empty salt
+        let cfg = r#"{"password_protected":true,"password_salt":""}"#;
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            cfg,
+        )
+        .unwrap();
+
+        let data = migrate_from_legacy();
+        assert_eq!(data.version, CURRENT_VERSION);
+        // Migration should repair: set password_protected = false since no salt
+        assert!(!data.config.password_protected, "should repair no-salt deadlock");
+        assert!(data.config.password_salt.is_empty());
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_migrate_encrypted_note() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Create an encrypted note scenario
+        let salt = crate::crypto::generate_salt();
+        let key = crate::crypto::derive_key("encrypted-migration-key", &salt).unwrap();
+        let note = crate::note::Note {
+            text: "encrypted during migration".to_string(),
+            cursor_pos: 5,
+            scroll_top: 2,
+        };
+        let nf = crate::note::NoteFile::from_encrypted(&note, &key).unwrap();
+        let nf_json = serde_json::to_string(&nf).unwrap();
+
+        // Write legacy config with password
+        let mut cfg = crate::config::Config::default();
+        cfg.password_protected = true;
+        cfg.password_salt = hex::encode(salt);
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            &serde_json::to_string_pretty(&cfg).unwrap(),
+        )
+        .unwrap();
+
+        // Write encrypted note
+        std::fs::write(
+            test_dir().join(format!("{}.notes", test_stem())),
+            &nf_json,
+        )
+        .unwrap();
+
+        // Write empty log
+        std::fs::write(
+            test_dir().join(format!("{}.log", test_stem())),
+            "",
+        )
+        .unwrap();
+
+        let data = migrate_from_legacy();
+        assert_eq!(data.version, CURRENT_VERSION);
+        assert!(data.config.password_protected);
+        assert!(!data.config.password_salt.is_empty());
+        assert!(data.note.encrypted);
+
+        // Verify decryption still works
+        let migrated_salt = hex::decode(&data.config.password_salt).unwrap();
+        let migrated_key = crate::crypto::derive_key("encrypted-migration-key", &migrated_salt).unwrap();
+        let decrypted = data.note.decrypt_to_note(&migrated_key).unwrap();
+        assert_eq!(decrypted.text, "encrypted during migration");
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_migrate_idempotent() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Write old config file
+        let old_config = r#"{"width":400,"height":500,"left":50,"top":60,"font_size":18,"always_on_top":true}"#;
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            old_config,
+        )
+        .unwrap();
+
+        // First migration
+        let data1 = migrate_from_legacy();
+        assert_eq!(data1.config.width, 400);
+        // Old files should be gone
+        assert!(!test_dir().join(format!("{}.config", test_stem())).exists());
+
+        // Second migration — old files no longer exist, uses defaults
+        let data2 = migrate_from_legacy();
+        assert_eq!(data2.version, CURRENT_VERSION);
+        // Config is default because no legacy files left
+        assert_eq!(data2.config.width, 300);
+        // Combined file should still exist and be intact
+        assert!(exists());
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_save_error_propagates() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Set forced write error
+        crate::util::set_forced_write_error_for_current_thread(Some("simulated write failure".to_string()));
+
+        let data = fresh();
+        let result = save(&data);
+        assert!(result.is_err(), "save should return Err when write fails");
+        assert!(
+            result.unwrap_err().contains("simulated write failure"),
+            "error message should propagate"
+        );
+
+        // Reset forced error
+        crate::util::set_forced_write_error_for_current_thread(None);
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_try_load_corrupt_file() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Write a corrupt combined file
+        std::fs::write(&notes_path(), "this is not valid json").unwrap();
+
+        // try_load should return Err, not silently return a default
+        let result = try_load();
+        assert!(result.is_err(), "try_load should return Err for corrupt data");
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_reconcile_both_invariants_violated() {
+        // Start with: encrypted = true, password_protected = false, salt is empty.
+        // Rule 1 fires: encrypted && !password_protected → password_protected = true.
+        // Rule 2: !encrypted is false → skip.
+        // Rule 3: !password_protected is now false → skip.
+        // Result: only rule 1 fires, but reconciliation still succeeds.
+        let mut data = NoteData {
+            version: CURRENT_VERSION,
+            config: crate::config::Config {
+                password_protected: false,
+                password_salt: String::new(),
+                ..crate::config::Config::default()
+            },
+            note: crate::note::NoteFile {
+                encrypted: true,
+                nonce_hex: Some("aabbccdd".to_string()),
+                ciphertext_hex: Some("11223344".to_string()),
+                text: String::new(),
+                cursor_pos: 0,
+                scroll_top: 0,
+            },
+            log: String::new(),
+        };
+
+        let changed = reconcile_invariants(&mut data);
+        assert!(changed, "reconcile should report changes were made");
+        assert!(
+            data.config.password_protected,
+            "encrypted note must force password_protected=true"
+        );
+        assert!(data.note.encrypted, "note should remain encrypted");
+    }
+
+    #[test]
+    fn test_reconcile_already_consistent() {
+        // Normal state: plaintext note, no protection, no salt — no changes needed
+        let mut data = NoteData {
+            version: CURRENT_VERSION,
+            config: crate::config::Config {
+                password_protected: false,
+                password_salt: String::new(),
+                ..crate::config::Config::default()
+            },
+            note: crate::note::NoteFile {
+                encrypted: false,
+                nonce_hex: None,
+                ciphertext_hex: None,
+                text: "normal note".to_string(),
+                cursor_pos: 0,
+                scroll_top: 0,
+            },
+            log: String::new(),
+        };
+
+        let changed = reconcile_invariants(&mut data);
+        assert!(!changed, "consistent state should not report changes");
+        assert!(!data.config.password_protected);
+        assert!(!data.note.encrypted);
+        assert!(data.config.password_salt.is_empty());
+    }
+
+    #[test]
+    fn test_migrate_only_config_exists() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Write only the legacy config file
+        let old_config = r#"{"width":600,"height":700,"left":100,"top":200,"font_size":20,"always_on_top":false}"#;
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            old_config,
+        )
+        .unwrap();
+        // No .notes or .log files
+
+        let data = migrate_from_legacy();
+        assert_eq!(data.version, CURRENT_VERSION);
+        assert_eq!(data.config.width, 600);
+        assert_eq!(data.config.height, 700);
+        // Note should be default (empty)
+        assert!(data.note.text.is_empty());
+        // Log should be empty
+        assert!(data.log.is_empty());
+        // Combined file should exist
+        assert!(exists());
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_fresh_returns_current_version() {
+        let data = fresh();
+        assert_eq!(
+            data.version,
+            CURRENT_VERSION,
+            "fresh() should always return CURRENT_VERSION ({})",
+            CURRENT_VERSION
+        );
+        assert!(!data.config.password_protected);
+        assert!(!data.note.encrypted);
+        assert!(data.note.text.is_empty());
+        assert!(data.log.is_empty());
+    }
 }

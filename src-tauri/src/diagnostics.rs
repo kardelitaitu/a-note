@@ -178,6 +178,124 @@ mod tests {
         event("curr", "new event");
         let log = flush_to_log_str();
         assert!(log.contains("old event"), "restored entry should appear");
-        assert!(log.contains("new event"), "new entry should appear");
+assert!(log.contains("new event"), "new entry should appear");
+    }
+
+    #[test]
+    fn test_flush_empty_buffer() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+        let log = flush_to_log_str();
+        assert!(log.is_empty(), "flush on empty buffer should return empty string");
+    }
+
+    #[test]
+    fn test_flush_clears_buffer() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+        event("cat", "hello");
+        let first = flush_to_log_str();
+        assert!(!first.is_empty(), "first flush should contain the event");
+        let second = flush_to_log_str();
+        assert!(second.is_empty(), "second flush should return empty string");
+    }
+
+    #[test]
+    fn test_double_restore() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+        restore_from_log_str("[1] first: batch a");
+        restore_from_log_str("[2] second: batch b");
+        let log = flush_to_log_str();
+        assert!(log.contains("batch a"), "first restored entry should appear");
+        assert!(log.contains("batch b"), "second restored entry should appear");
+    }
+
+    #[test]
+    fn test_restore_empty_string() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+        // Restore empty string (should be a no-op)
+        restore_from_log_str("");
+        event("cat", "after empty restore");
+        let log = flush_to_log_str();
+        assert!(log.contains("after empty restore"), "event after empty restore should be present");
+        assert!(!log.contains("[log trimmed]"), "no trimming prefix expected");
+    }
+
+    #[test]
+    fn test_event_special_chars() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+        event("café", "ñoño — 你好 — 👍 — <>&'\";");
+        let log = flush_to_log_str();
+        assert!(log.contains("café"), "category with non-ASCII");
+        assert!(log.contains("ñoño"), "message with non-ASCII");
+        assert!(log.contains("你好"), "message with CJK");
+        assert!(log.contains("👍"), "message with emoji");
+        assert!(log.contains("<>&'\";"), "message with special chars");
+    }
+
+    #[test]
+    fn test_restore_after_flush() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+        // Write and flush some events
+        event("first", "batch");
+        let _first_flush = flush_to_log_str();
+        // Restore more entries
+        restore_from_log_str("[1] restored: entry");
+        event("second", "after restore");
+        let combined = flush_to_log_str();
+        // Both the restored entry and the post-restore event should be present
+        assert!(combined.contains("restored: entry"), "restored entry should appear");
+        assert!(combined.contains("after restore"), "event after restore should appear");
+        // The first batch that was flushed earlier should NOT appear
+        assert!(!combined.contains("first: batch"), "previously flushed events should not reappear");
+    }
+
+    #[test]
+    fn test_log_boundary_trimming() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+        // Fill buffer to just under 10 KB with known content
+        // Each line: "[1234567890] bulk: XXXX...\n" — aim for ~200 bytes per line
+        let msg = "X".repeat(180);
+        // 50 events * ~200 bytes ≈ 10 KB — should be right at the boundary
+        for _ in 0..55 {
+            event("bulk", &msg);
+        }
+        // Manually check the buffer size by looking at the flushed output
+        let log = flush_to_log_str();
+        // The trimmed output should be at most ~10 KB plus the "[log trimmed]\n" prefix
+        assert!(
+            log.len() <= 10_500,
+            "log too large ({}), trimming should have capped it",
+            log.len()
+        );
+    }
+
+    #[test]
+    fn test_concurrent_events() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+        // Rapid-fire 50 events in sequence
+        for i in 0..50 {
+            event("conc", &format!("event number {i}"));
+        }
+        let log = flush_to_log_str();
+        // All 50 should be present
+        for i in 0..50 {
+            assert!(
+                log.contains(&format!("event number {i}")),
+                "event {i} should be in the log"
+            );
+        }
+        let lines: Vec<&str> = log.lines().collect();
+        assert_eq!(lines.len(), 50, "all 50 events should produce 50 lines");
+        // Each line should have a timestamp
+        for line in &lines {
+            assert!(line.starts_with('['), "every line should start with a timestamp: {line:?}");
+        }
     }
 }

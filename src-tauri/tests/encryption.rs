@@ -326,3 +326,274 @@ fn test_same_content_different_keys_produce_different_ciphertexts() {
     assert_ne!(ct_a, ct_b, "different keys should produce different ciphertexts");
     assert_ne!(nonce_a, nonce_b, "different keys still get unique nonces");
 }
+
+// ── Lock/unlock cycle repeated 3x ───────────────────────────────────────
+
+#[test]
+fn test_lock_unlock_cycle() {
+    for i in 0..3 {
+        let salt = crypto::generate_salt();
+        let key = crypto::derive_key("cycle-password", &salt).unwrap();
+
+        let plaintext = format!("cycle iteration {i}");
+        let (nonce, ciphertext) = crypto::encrypt(&plaintext, &key).unwrap();
+
+        let nf = NoteFile {
+            encrypted: true,
+            nonce_hex: Some(hex::encode(&nonce)),
+            ciphertext_hex: Some(hex::encode(&ciphertext)),
+            text: String::new(),
+            cursor_pos: 10,
+            scroll_top: 5,
+        };
+
+        let decrypted = nf.decrypt_to_note(&key).unwrap();
+        assert_eq!(decrypted.text, plaintext);
+        assert_eq!(decrypted.cursor_pos, 10);
+        assert_eq!(decrypted.scroll_top, 5);
+    }
+}
+
+// ── Wrong key fails, then correct key succeeds ──────────────────────────
+
+#[test]
+fn test_unlock_wrong_then_correct() {
+    let salt = crypto::generate_salt();
+    let correct_key = crypto::derive_key("correct-password", &salt).unwrap();
+    let wrong_key = crypto::derive_key("wrong-password", &salt).unwrap();
+
+    let note = Note {
+        text: "protected content".to_string(),
+        cursor_pos: 3,
+        scroll_top: 1,
+    };
+    let nf = NoteFile::from_encrypted(&note, &correct_key).unwrap();
+
+    // Wrong key should fail
+    let result = nf.decrypt_to_note(&wrong_key);
+    assert!(result.is_err(), "wrong key must fail decryption");
+
+    // Correct key should succeed
+    let decrypted = nf.decrypt_to_note(&correct_key).unwrap();
+    assert_eq!(decrypted.text, "protected content");
+    assert_eq!(decrypted.cursor_pos, 3);
+    assert_eq!(decrypted.scroll_top, 1);
+}
+
+// ── Ciphertext differs from plaintext, then decrypts correctly ──────────
+
+#[test]
+fn test_save_encrypted_note_roundtrip() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("roundtrip-test", &salt).unwrap();
+
+    let note = Note {
+        text: "my secret sticky note".to_string(),
+        cursor_pos: 7,
+        scroll_top: 2,
+    };
+
+    let nf = NoteFile::from_encrypted(&note, &key).unwrap();
+
+    // Ciphertext must differ from plaintext bytes
+    let ct_hex = nf.ciphertext_hex.as_ref().unwrap();
+    let ciphertext = hex::decode(ct_hex).unwrap();
+    assert_ne!(
+        ciphertext.as_slice(),
+        note.text.as_bytes(),
+        "ciphertext must differ from plaintext"
+    );
+
+    // Decrypt back and verify
+    let decrypted = nf.decrypt_to_note(&key).unwrap();
+    assert_eq!(decrypted.text, "my secret sticky note");
+    assert_eq!(decrypted.cursor_pos, 7);
+    assert_eq!(decrypted.scroll_top, 2);
+}
+
+// ── Same password, different salt → different ciphertext ────────────────
+
+#[test]
+fn test_change_password_same() {
+    let password = "my-password";
+
+    let salt_a = crypto::generate_salt();
+    let salt_b = crypto::generate_salt();
+    let key_a = crypto::derive_key(password, &salt_a).unwrap();
+    let key_b = crypto::derive_key(password, &salt_b).unwrap();
+
+    // Different salts must produce different keys
+    assert_ne!(key_a, key_b);
+
+    let note = Note {
+        text: "password change test".to_string(),
+        cursor_pos: 0,
+        scroll_top: 0,
+    };
+
+    // Encrypt with key_a, then re-encrypt with key_b
+    let nf_a = NoteFile::from_encrypted(&note, &key_a).unwrap();
+    let decrypted = nf_a.decrypt_to_note(&key_a).unwrap();
+    let nf_b = NoteFile::from_encrypted(&decrypted, &key_b).unwrap();
+
+    // Both decrypt to same plaintext
+    let result_a = nf_a.decrypt_to_note(&key_a).unwrap();
+    let result_b = nf_b.decrypt_to_note(&key_b).unwrap();
+    assert_eq!(result_a.text, "password change test");
+    assert_eq!(result_b.text, "password change test");
+
+    // Ciphertexts must differ (different key + different nonce)
+    assert_ne!(nf_a.ciphertext_hex, nf_b.ciphertext_hex);
+}
+
+// ── Encrypt → unencrypted → re-encrypt roundtrip ────────────────────────
+
+#[test]
+fn test_remove_password_then_re_set() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("password123", &salt).unwrap();
+
+    // 1. Encrypt to NoteFile
+    let note = Note {
+        text: "roundtrip content".to_string(),
+        cursor_pos: 5,
+        scroll_top: 3,
+    };
+    let nf_encrypted = NoteFile::from_encrypted(&note, &key).unwrap();
+
+    // 2. Decrypt to get Note back
+    let decrypted_note = nf_encrypted.decrypt_to_note(&key).unwrap();
+    assert_eq!(decrypted_note.text, "roundtrip content");
+
+    // 3. Save as unencrypted NoteFile
+    let nf_unencrypted = NoteFile {
+        encrypted: false,
+        nonce_hex: None,
+        ciphertext_hex: None,
+        text: decrypted_note.text.clone(),
+        cursor_pos: decrypted_note.cursor_pos,
+        scroll_top: decrypted_note.scroll_top,
+    };
+
+    // 4. Re-encrypt from the unencrypted data (simulating re-setting password)
+    let note_from_unencrypted = Note {
+        text: nf_unencrypted.text.clone(),
+        cursor_pos: nf_unencrypted.cursor_pos,
+        scroll_top: nf_unencrypted.scroll_top,
+    };
+    let nf_reencrypted = NoteFile::from_encrypted(&note_from_unencrypted, &key).unwrap();
+
+    // 5. Final roundtrip
+    let final_note = nf_reencrypted.decrypt_to_note(&key).unwrap();
+    assert_eq!(final_note.text, "roundtrip content");
+    assert_eq!(final_note.cursor_pos, 5);
+    assert_eq!(final_note.scroll_top, 3);
+}
+
+// ── Non-ASCII content (emoji, CJK, mixed scripts) ───────────────────────
+
+#[test]
+fn test_non_ascii_content_encryption() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("unicode-password", &salt).unwrap();
+
+    let contents = [
+        "Hello, 世界! 🌍",
+        "こんにちは、世界！",
+        "안녕하세요, 세계! 🚀",
+        "emoji party: 🎉🌟💯🔥👋",
+        "Mixed: Français, 中文, العربية, Русский 🎈",
+        "Line breaks\nand tabs\tand emoji 🎯\n\n下一行",
+        "null\x00byte\thandling 🛠️",
+    ];
+
+    for content in &contents {
+        let note = Note {
+            text: content.to_string(),
+            cursor_pos: 0,
+            scroll_top: 0,
+        };
+        let nf = NoteFile::from_encrypted(&note, &key).unwrap();
+        let decrypted = nf.decrypt_to_note(&key).unwrap();
+        assert_eq!(&decrypted.text, content, "non-ASCII content roundtrip failed");
+    }
+}
+
+// ── Empty salt rejected by derive_key ───────────────────────────────────
+
+#[test]
+fn test_empty_salt_rejected() {
+    let result = crypto::derive_key("any-password", &[]);
+    assert!(result.is_err(), "empty salt must be rejected by derive_key");
+}
+
+// ── Zero key (all-zero 32 bytes) still works (AES accepts it) ───────────
+
+#[test]
+fn test_zero_key_encrypt_decrypt() {
+    let zero_key = [0u8; 32];
+
+    let note = Note {
+        text: "zero key test".to_string(),
+        cursor_pos: 42,
+        scroll_top: 7,
+    };
+
+    let nf = NoteFile::from_encrypted(&note, &zero_key).unwrap();
+    let decrypted = nf.decrypt_to_note(&zero_key).unwrap();
+    assert_eq!(decrypted.text, "zero key test");
+    assert_eq!(decrypted.cursor_pos, 42);
+    assert_eq!(decrypted.scroll_top, 7);
+}
+
+// ── cursor_pos and scroll_top survive encrypt/decrypt cycle ─────────────
+
+#[test]
+fn test_cursor_scroll_preserved_through_encryption() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("cursor-scroll-test", &salt).unwrap();
+
+    let positions = [
+        (0u32, 0u32),
+        (1u32, 0u32),
+        (0u32, 1u32),
+        (10u32, 5u32),
+        (100u32, 50u32),
+        (9999u32, 8888u32),
+    ];
+
+    for &(cursor_pos, scroll_top) in &positions {
+        let note = Note {
+            text: "preserve me".to_string(),
+            cursor_pos,
+            scroll_top,
+        };
+        let nf = NoteFile::from_encrypted(&note, &key).unwrap();
+        let decrypted = nf.decrypt_to_note(&key).unwrap();
+        assert_eq!(decrypted.cursor_pos, cursor_pos, "cursor_pos not preserved for ({cursor_pos}, {scroll_top})");
+        assert_eq!(decrypted.scroll_top, scroll_top, "scroll_top not preserved for ({cursor_pos}, {scroll_top})");
+        assert_eq!(decrypted.text, "preserve me");
+    }
+}
+
+// ── Consecutive decrypts with same key all succeed ──────────────────────
+
+#[test]
+fn test_consecutive_decrypts_same_key() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("consecutive-test", &salt).unwrap();
+
+    let note = Note {
+        text: "decrypt me many times".to_string(),
+        cursor_pos: 8,
+        scroll_top: 4,
+    };
+    let nf = NoteFile::from_encrypted(&note, &key).unwrap();
+
+    for i in 0..5 {
+        let decrypted = nf.decrypt_to_note(&key).unwrap();
+        assert_eq!(decrypted.text, "decrypt me many times", "decrypt failed on iteration {i}");
+        assert_eq!(decrypted.cursor_pos, 8, "cursor_pos mismatch on iteration {i}");
+        assert_eq!(decrypted.scroll_top, 4, "scroll_top mismatch on iteration {i}");
+    }
+}

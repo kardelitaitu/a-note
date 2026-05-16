@@ -767,4 +767,66 @@ mod tests {
         cleanup_notes_file();
         cleanup_legacy_config_file();
     }
+
+    // ── decode_salt_hex ──────────────────────────────────────────
+
+    #[test]
+    fn test_decode_salt_hex_short() {
+        // "aabbccddee" = 5 bytes, which is < 8 byte minimum
+        let result = decode_salt_hex("aabbccddee");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("salt length"));
+    }
+
+    #[test]
+    fn test_decode_salt_hex_invalid() {
+        let result = decode_salt_hex("ZZZZZZZZZZZZZZZZ");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("salt hex"));
+    }
+
+    #[test]
+    fn test_decode_salt_hex_valid() {
+        let hex_salt = "deadbeef010203040506070809101112";
+        let result = decode_salt_hex(hex_salt);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), hex::decode(hex_salt).unwrap());
+    }
+
+    #[test]
+    fn test_decode_salt_hex_empty() {
+        let result = decode_salt_hex("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_decode_salt_hex_8_bytes() {
+        // Exactly 8 bytes (16 hex chars) — the minimum
+        let hex_salt = "aabbccddee001122";
+        let result = decode_salt_hex(hex_salt);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), hex::decode(hex_salt).unwrap());
+    }
+
+    // ── ensure_set_password_preconditions ────────────────────────
+
+    #[test]
+    fn test_ensure_set_password_preconditions_ok() {
+        let data = storage::NoteData {
+            version: 1,
+            config: config::Config::default(),
+            note: note::NoteFile {
+                encrypted: false,
+                nonce_hex: None,
+                ciphertext_hex: None,
+                text: "plain".to_string(),
+                cursor_pos: 0,
+                scroll_top: 0,
+            },
+            log: String::new(),
+        };
+        // Both password_protected (default false) and encrypted (false) — should pass
+        let result = ensure_set_password_preconditions(&data);
+        assert!(result.is_ok());
+    }
 }

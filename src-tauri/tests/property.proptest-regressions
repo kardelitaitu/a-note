@@ -1,0 +1,10 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc cc80cf6a341e8bcd482f9e85039e725784b4df3859405eca93717cbe7facacea # shrinks to nf = NoteFile { encrypted: false, nonce_hex: None, ciphertext_hex: Some("9cfa4a441509b"), text: "ੜ<໒¥/�:", cursor_pos: 0, scroll_top: 0 }
+cc dfe105c982f5e958e21b7fb7ddc0c3abde193476b2999bb1514e167151f97a06 # shrinks to data = NoteData { version: 1, config: Config { width: 0, height: 5129855, left: -809559521, top: 1998873077, font_size: 186, always_on_top: false, word_wrap: true, theme: "nord", titlebar_color: "�\u{11caf}\u{1a62}᪪''K,", titlebar_fill: 107, password_protected: true, password_salt: "{ङ:`q{𐞶h⽷Z�.*oܞ𐤢b;:?<b𐺠$𐳛", lock_timeout_minutes: 1111, font_family: "ㄷ%*V*\\V.8", start_with_windows: true }, note: NoteFile { encrypted: false, nonce_hex: None, ciphertext_hex: None, text: "ᤒ\u{b82}¥Y+", cursor_pos: 4294967295, scroll_top: 0 }, log: "𚿾য়\u{b01}𑎳Ⱥ�|" }
+cc 291748a28a2ced4653f8efca07565a7bb27e386d7e135f925be76dca4f6cb01d # shrinks to nf = NoteFile { encrypted: true, nonce_hex: None, ciphertext_hex: Some("6"), text: "Sഏ𐻂<^꧘𖼁`¥A' '$𑊀'/𐁋\u{10a0e}𐩄$\\(𖫕I\u{ecd}𐊿", cursor_pos: 4294967295, scroll_top: 4294967295 }
+cc 4275a21de324aa87896d9e3e210680936016fe0c1aaa041c3f81078ac8c5532c # shrinks to nf = NoteFile { encrypted: true, nonce_hex: Some(""), ciphertext_hex: Some("3037ebce83d762d5ba7fc065114f4abacebc5e3a"), text: "r𛅐.𐄛¥\\𝼏$શf2ㄞ9", cursor_pos: 1, scroll_top: 0 }
