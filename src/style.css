@@ -4,6 +4,13 @@
   box-sizing: border-box;
 }
 
+/* Better font rendering on dark themes */
+body, textarea, #editor, #menu-dropdown button {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 /* Smooth theme transitions on overlays and cards */
 #lock-card, #pwd-card, #lock-overlay, #pwd-overlay,
 #titlebar button, #menu-dropdown, #menu-dropdown button {

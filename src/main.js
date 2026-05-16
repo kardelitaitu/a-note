@@ -264,21 +264,92 @@ editor.addEventListener("input", () => {
 
 // Ctrl+Scroll to zoom
 editor.addEventListener("wheel", (e) => {
-  if (!e.ctrlKey) return;
-  e.preventDefault();
-
-  const step = 1.1;
-  let size = parseFloat(editor.style.fontSize) || config.font_size;
-
-  if (e.deltaY < 0) {
-    size = Math.min(size * step, 72);
-  } else {
-    size = Math.max(size / step, 8);
+  if (e.ctrlKey) {
+    e.preventDefault();
+    const step = 1.1;
+    let size = parseFloat(editor.style.fontSize) || config.font_size;
+    if (e.deltaY < 0) {
+      size = Math.min(size * step, 72);
+    } else {
+      size = Math.max(size / step, 8);
+    }
+    editor.style.fontSize = size + "px";
+    config.font_size = Math.round(size);
+    saveConfig();
+    return;
   }
 
-  editor.style.fontSize = size + "px";
-  config.font_size = Math.round(size);
-  saveConfig();
+  // Smooth scroll with momentum
+  e.preventDefault();
+  let delta = e.deltaY;
+  if (e.deltaMode === 1) delta *= 18;       // lines → pixels
+  else if (e.deltaMode === 2) delta *= editor.clientHeight; // pages → pixels
+  ss.velocity += delta * 0.3;
+  ss.velocity = Math.max(-60, Math.min(60, ss.velocity));
+  if (!ss.animating) { ss.animating = true; rAF(tickScroll); }
+}, { passive: false });
+
+// ── Smooth Scroll Engine ─────────────────────────────────
+
+let ss = {
+  velocity: 0,
+  animating: false,
+  animId: null,
+};
+
+const rAF = requestAnimationFrame.bind(window);
+
+function tickScroll() {
+  ss.velocity *= 0.88;
+  let top = editor.scrollTop + ss.velocity;
+  const maxScroll = editor.scrollHeight - editor.clientHeight;
+  if (top < 0) { top = 0; ss.velocity *= -0.3; }
+  else if (top > maxScroll) { top = maxScroll; ss.velocity *= -0.3; }
+  editor.scrollTop = top;
+  if (Math.abs(ss.velocity) < 0.5) {
+    ss.animating = false;
+    ss.velocity = 0;
+    return;
+  }
+  ss.animId = rAF(tickScroll);
+}
+
+function animateScrollTo(target, duration) {
+  const start = editor.scrollTop;
+  const startTime = performance.now();
+
+  function tick() {
+    const elapsed = performance.now() - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    editor.scrollTop = start + (target - start) * ease;
+    if (t < 1) ss.animId = rAF(tick);
+    else ss.animating = false;
+  }
+
+  // Stop any running wheel momentum first
+  if (ss.animId) cancelAnimationFrame(ss.animId);
+  ss.velocity = 0;
+  ss.animating = true;
+  tick();
+}
+
+// ── Smooth scroll on arrow/page keys ─────────────────────
+
+const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End"]);
+
+editor.addEventListener("keydown", (e) => {
+  if (!SCROLL_KEYS.has(e.key)) return;
+
+  // Let browser process the key first (moves cursor + scrolls natively)
+  const oldTop = editor.scrollTop;
+  rAF(() => {
+    const newTop = editor.scrollTop;
+    if (newTop !== oldTop) {
+      editor.scrollTop = oldTop; // revert the instant jump
+      animateScrollTo(newTop, 100);
+    }
+  });
 });
 
 // Double-click to select line
