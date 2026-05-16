@@ -21,6 +21,9 @@ pub struct NoteData {
 
 const CURRENT_VERSION: u32 = 1;
 
+#[cfg(test)]
+pub(crate) static STORAGE_TEST_FILE_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 fn exe_stem() -> String {
     std::env::current_exe()
         .ok()
@@ -324,8 +327,7 @@ mod tests {
     // storage paths are determined by exe location. We clean up after
     // ourselves. Serialized with a Mutex to avoid parallel contention.
 
-    use std::sync::Mutex;
-    static FILE_LOCK: Mutex<()> = Mutex::new(());
+    use super::STORAGE_TEST_FILE_LOCK as FILE_LOCK;
 
     fn test_stem() -> String {
         exe_stem()

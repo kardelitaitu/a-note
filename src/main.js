@@ -439,7 +439,7 @@ pwdConfirm.addEventListener("click", async () => {
   try {
     if (pwdMode === "set") {
       await invoke("set_password", { password: pwd });
-      config.password_protected = true;
+      await loadConfig();
       updatePasswordMenuItems();
       hidePwdOverlay();
       startLockTimer();
@@ -448,7 +448,7 @@ pwdConfirm.addEventListener("click", async () => {
       hidePwdOverlay();
     } else if (pwdMode === "remove") {
       await invoke("remove_password", { password: pwd });
-      config.password_protected = false;
+      await loadConfig();
       updatePasswordMenuItems();
       clearLockTimer();
       hidePwdOverlay();
@@ -645,7 +645,7 @@ function initPasswordMenu() {
         showPwdOverlay("New password", "New password", "set", async (newPwd) => {
           try {
             await invoke("change_password", { oldPwd, newPwd });
-            config.password_protected = true;
+            await loadConfig();
             updatePasswordMenuItems();
             startLockTimer();
           } catch (e) {

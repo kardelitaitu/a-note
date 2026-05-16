@@ -2,12 +2,29 @@ use std::path::Path;
 
 const FILE_ATTRIBUTE_HIDDEN: u32 = 0x2;
 
+#[cfg(test)]
+thread_local! {
+    static FORCED_WRITE_ERROR: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(test)]
+pub fn set_forced_write_error_for_current_thread(message: Option<String>) {
+    FORCED_WRITE_ERROR.with(|slot| {
+        *slot.borrow_mut() = message;
+    });
+}
+
 #[cfg(windows)]
 extern "system" {
     fn SetFileAttributesW(lpFileName: *const u16, dwFileAttributes: u32) -> i32;
 }
 
 pub fn write(path: &Path, contents: &str) -> Result<(), String> {
+    #[cfg(test)]
+    if let Some(message) = FORCED_WRITE_ERROR.with(|slot| slot.borrow().clone()) {
+        return Err(message);
+    }
+
     let hidden = was_hidden(path);
     std::fs::write(path, contents)
         .map_err(|e| format!("failed to write {}: {e}", path.display()))?;

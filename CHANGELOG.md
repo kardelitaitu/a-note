@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.0 — 2026-05-16
+
+### Added
+- **Combined storage**: config, note content, and diagnostics log merged into a single `{exe}.notes` file via new `storage.rs` module
+- **NoteData format**: `{ "version": 1, "config": {...}, "note": {...}, "log": "..." }` — single JSON blob replaces three separate files
+- **Auto-migration**: on first v0.2.0 launch, old `{exe}.config`, `{exe}.notes`, and `{exe}.log` are read, merged, written as combined `.notes`, then old files deleted
+- **In-memory diagnostics**: event log stored in `Mutex<String>` buffer instead of file I/O; flushed to NoteData on save via `flush_to_log_str()` / `restore_from_log_str()`
+- **Confirm password**: second password field on set/change dialog — both must match before submitting
+- **Config auto-repair in `storage::load()`**: `password_protected=true` with empty `password_salt` and unencrypted note is now detected and fixed on every load
+- **`salt_from_config` clears encrypted note**: when repairing a corrupt config where salt is missing, the encrypted note is also cleared to prevent a locked-but-no-password deadlock
+- **Copyright field**: set to "kardelitaitu" in exe properties via `tauri.conf.json` bundle config
+- 13 storage module tests: format roundtrip, file I/O, corrupt file fallback, migration (basic + encrypted + no files), user-scenario unlock/save/reload
+
+### Changed
+- All Tauri commands (`load_config`, `save_config`, `load_note`, `save_note`, `set_password`, `unlock`, `lock`, `remove_password`, `change_password`, `set_start_with_windows`) now go through `storage::load()` / `storage::save()`
+- `NoteFile` struct: added `Clone` derive for storage helpers
+
+### Security
+- 191 total tests (169 lib + 14 integration + 8 property-based)
+
 ## 0.1.5 — 2026-05-16
 
 ### Added
