@@ -77,7 +77,7 @@ pub fn save(note: &Note) {
 ///
 /// Existing legacy files (without `encrypted` field) deserialize as
 /// `encrypted: false` via serde default, preserving full backward compat.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct NoteFile {
     /// Whether the content is AES-256-GCM encrypted.
     #[serde(default)]

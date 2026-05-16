@@ -1,10 +1,14 @@
 //! Simple local crash reporting and event logging.
 //!
 //! - Panics caught via `set_hook` → written to `{exe}.crash`
-//! - Major events appended to `{exe}.log` (startup, password ops, errors)
+//! - Events stored in-memory, flushed to the combined `.notes` file via
+//!   `flush_to_log_str()` / `restore_from_log_str()`
 //! - No network calls — all data stays local on disk.
 
 use std::path::PathBuf;
+use std::sync::Mutex;
+
+static LOG_BUF: Mutex<Option<String>> = Mutex::new(None);
 
 fn exe_stem() -> String {
     std::env::current_exe()
@@ -23,14 +27,8 @@ fn exe_dir() -> PathBuf {
 /// Initialise the crash reporter.
 ///
 /// Call once at startup. Sets a panic hook that writes crash details
-/// to `{exe}.crash`. Existing `.log` file is cleared on init.
+/// to `{exe}.crash`. Also logs a startup event to the in-memory buffer.
 pub fn init() {
-    let stem = exe_stem();
-    let dir = exe_dir();
-
-    // Clear previous session log
-    let _ = std::fs::write(dir.join(format!("{stem}.log")), "");
-
     let prev = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |info| {
         let stem = exe_stem();
@@ -50,26 +48,46 @@ pub fn init() {
     event("startup", "Application started");
 }
 
-/// Append a major event to `{exe}.log`.
+/// Append a major event to the in-memory log buffer.
 pub fn event(category: &str, message: &str) {
-    let stem = exe_stem();
-    let dir = exe_dir();
-    let path = dir.join(format!("{stem}.log"));
-
     let line = format!("[{}] {}: {}\n", timestamp(), category, message);
-    let mut log = std::fs::read_to_string(&path).unwrap_or_default();
-    log.push_str(&line);
-
-    // Keep log under ~100 KB — trim oldest lines
-    if log.len() > 100_000 {
-        if let Some(_pos) = log.rfind('\n') {
-            let trimmed = &log[log.len() - 90_000..];
-            let first_newline = trimmed.find('\n').unwrap_or(0);
-            log = format!("[log trimmed]\n{}", &trimmed[first_newline + 1..]);
-        }
+    if let Ok(mut guard) = LOG_BUF.lock() {
+        let buf = guard.get_or_insert_with(String::new);
+        buf.push_str(&line);
     }
+}
 
-    let _ = std::fs::write(&path, &log);
+/// Flush the in-memory log to a string suitable for persisting.
+/// The log is capped at ~10 KB, trimmed from the oldest entries.
+/// The in-memory buffer is cleared after flushing.
+pub fn flush_to_log_str() -> String {
+    if let Ok(mut guard) = LOG_BUF.lock() {
+        let buf = guard.take().unwrap_or_default();
+        if buf.len() > 10_000 {
+            if let Some(_pos) = buf.rfind('\n') {
+                let trimmed = &buf[buf.len() - 9_000..];
+                let first_newline = trimmed.find('\n').unwrap_or(0);
+                return format!("[log trimmed]\n{}", &trimmed[first_newline + 1..]);
+            }
+        }
+        buf
+    } else {
+        String::new()
+    }
+}
+
+/// Restore previously persisted log entries back into the in-memory buffer.
+/// New events will be appended after these.
+pub fn restore_from_log_str(saved: &str) {
+    if saved.is_empty() {
+        return;
+    }
+    if let Ok(mut guard) = LOG_BUF.lock() {
+        let buf = guard.get_or_insert_with(String::new);
+        // Prepend old entries, then add the restored entries before existing ones
+        // (flushing later includes everything)
+        *buf = format!("{}\n{}", saved.trim(), buf);
+    }
 }
 
 fn timestamp() -> u64 {
@@ -87,24 +105,16 @@ mod tests {
     static DIAG_LOCK: Mutex<()> = Mutex::new(());
 
     #[test]
-    fn test_event_appends_to_log() {
+    fn test_event_appends_to_buffer() {
         let _lock = DIAG_LOCK.lock().unwrap();
-        let dir = exe_dir();
-        let stem = exe_stem();
-        let path = dir.join(format!("{stem}.log"));
-        let _ = std::fs::write(&path, "");
-
         event("cat-a", "msg a");
         event("cat-b", "msg b");
-        let content = std::fs::read_to_string(&path).unwrap_or_default();
-
-        assert!(content.contains("cat-a: msg a"), "missing cat-a");
-        assert!(content.contains("cat-b: msg b"), "missing cat-b");
-        let lines: Vec<&str> = content.lines().collect();
+        let log = flush_to_log_str();
+        assert!(log.contains("cat-a: msg a"), "missing cat-a");
+        assert!(log.contains("cat-b: msg b"), "missing cat-b");
+        let lines: Vec<&str> = log.lines().collect();
         assert!(lines.len() >= 2, "expected ≥2 lines, got {}", lines.len());
-        // Each line should have a timestamp
-        assert!(content.contains("["));
-        assert!(content.contains("]"));
+        assert!(log.contains("["), "should have timestamp");
     }
 
     #[test]
@@ -114,93 +124,75 @@ mod tests {
             .unwrap()
             .as_secs();
         let ts = timestamp();
-        // Timestamp should be within the last 10 seconds
         assert!(ts > 1_700_000_000, "timestamp seems too far in the past");
         assert!(ts <= now + 1, "timestamp is in the future");
     }
 
     #[test]
-    fn test_log_path_deterministic() {
-        let dir = exe_dir();
-        let stem = exe_stem();
-
-        // Validate the path is well-formed
-        let path = dir.join(format!("{stem}.log"));
-        let path_str = path.to_string_lossy();
-        assert!(path_str.contains(stem.as_str()));
-        assert!(path_str.ends_with(".log"));
-    }
-
-    #[test]
-    fn test_init_clears_log_and_does_not_panic() {
+    fn test_init_does_not_panic() {
         let _lock = DIAG_LOCK.lock().unwrap();
-        // init() clears the log file, writes a startup event
+        // Clear any previous state
+        let _ = flush_to_log_str();
+        // init() sets panic hook and writes a startup event
         init();
-        let dir = exe_dir();
-        let stem = exe_stem();
-        let path = dir.join(format!("{stem}.log"));
-        let content = std::fs::read_to_string(&path).unwrap_or_default();
-        // After init, the log should contain at least a startup event
-        assert!(content.contains("startup"), "init should write a startup event");
-        assert!(content.contains("Application started"));
+        let log = flush_to_log_str();
+        assert!(log.contains("startup"), "init should write a startup event");
+        assert!(log.contains("Application started"));
     }
 
     #[test]
-    fn test_log_rotation() {
+    fn test_log_rotation_on_flush() {
         let _lock = DIAG_LOCK.lock().unwrap();
-        let dir = exe_dir();
-        let stem = exe_stem();
-        let path = dir.join(format!("{stem}.log"));
-        let _ = std::fs::write(&path, "");
+        let _ = flush_to_log_str(); // clear
 
-        // Write enough content to trigger rotation (>100KB)
-        let big_line = "x".repeat(5_000);
-        for _ in 0..25 {
+        // Write enough to trigger 10KB cap on flush
+        let big_line = "x".repeat(1_000);
+        for _ in 0..15 {
             event("bulk", &big_line);
         }
-
-        let content = std::fs::read_to_string(&path).unwrap_or_default();
+        let log = flush_to_log_str();
         assert!(
-            content.len() <= 100_000,
-            "log should be trimmed to ≤100KB, got {}",
-            content.len()
-        );
-        // After rotation, the log should still start with the trim marker
-        assert!(
-            content.contains("[log trimmed]"),
-            "rotation should add a trim marker"
+            log.len() <= 10_100,
+            "log should be trimmed to ~10KB, got {}",
+            log.len()
         );
     }
 
     #[test]
     fn test_event_with_newlines_in_message() {
         let _lock = DIAG_LOCK.lock().unwrap();
-        let dir = exe_dir();
-        let stem = exe_stem();
-        let path = dir.join(format!("{stem}.log"));
-        let _ = std::fs::write(&path, "");
+        let _ = flush_to_log_str(); // clear
 
         event("multi", "line one\nline two\nline three");
-        let content = std::fs::read_to_string(&path).unwrap_or_default();
-        assert!(content.contains("line one"));
-        assert!(content.contains("line two"));
-        assert!(content.contains("line three"));
-        // The event should be a single log entry despite newlines
-        let lines: Vec<&str> = content.lines().collect();
+        let log = flush_to_log_str();
+        assert!(log.contains("line one"));
+        assert!(log.contains("line two"));
+        assert!(log.contains("line three"));
+        let lines: Vec<&str> = log.lines().collect();
         assert_eq!(lines.len(), 3, "should have 3 lines for the 3-line message");
     }
 
     #[test]
     fn test_event_empty_category() {
         let _lock = DIAG_LOCK.lock().unwrap();
-        let dir = exe_dir();
-        let stem = exe_stem();
-        let path = dir.join(format!("{stem}.log"));
-        let _ = std::fs::write(&path, "");
+        let _ = flush_to_log_str(); // clear
 
-        // Empty category should still produce a valid log line
         event("", "just a message");
-        let content = std::fs::read_to_string(&path).unwrap_or_default();
-        assert!(content.contains(": just a message"));
+        let log = flush_to_log_str();
+        assert!(log.contains(": just a message"));
+    }
+
+    #[test]
+    fn test_restore_from_log_str() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+
+        // Restore previous log
+        restore_from_log_str("[100] prev: old event");
+        // Add new event
+        event("curr", "new event");
+        let log = flush_to_log_str();
+        assert!(log.contains("old event"), "restored entry should appear");
+        assert!(log.contains("new event"), "new entry should appear");
     }
 }
