@@ -721,19 +721,24 @@ async function trackWindow() {
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
   const win = getCurrentWindow();
 
+  let resizeTimer;
   await win.onResized(async () => {
     const size = await win.outerSize();
     config.width = size.width;
     config.height = size.height;
-    saveConfig();
+    // Debounce: save only after resize ends (500ms of no activity)
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => saveConfig(), 500);
   });
 
+  let moveTimer;
   await win.onMoved(async () => {
     const pos = await win.outerPosition();
     if (pos.x < 0 || pos.y < 0) return;
     config.left = pos.x;
     config.top = pos.y;
-    saveConfig();
+    clearTimeout(moveTimer);
+    moveTimer = setTimeout(() => saveConfig(), 500);
   });
 }
 
