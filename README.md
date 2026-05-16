@@ -17,7 +17,12 @@
 </p>
 
 <p align="center">
-  <a href="src/preview.mp4">🎬 Watch app preview (MP4)</a>
+  <a href="src/preview.mp4">
+    <img src="src/preview.gif" alt="a-note preview" width="880">
+  </a>
+</p>
+<p align="center">
+  <a href="src/preview.mp4">🎬 Watch full preview (MP4)</a>
 </p>
 
 ---
