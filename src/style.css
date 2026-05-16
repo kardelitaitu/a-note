@@ -814,8 +814,6 @@ html, body {
 #pwd-overlay:not(.hidden) {
   visibility: visible;
   opacity: 1;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 
 #lock-overlay.hidden,
