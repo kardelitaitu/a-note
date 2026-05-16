@@ -125,9 +125,10 @@
 
     <!-- Password setup overlay (used only by set/change/remove flows) -->
     <div id="pwd-overlay" class="hidden">
-      <div id="pwd-card">
+        <div id="pwd-card">
         <div id="pwd-title">Set Password</div>
         <input type="password" id="pwd-input" placeholder="Password" spellcheck="false" autocomplete="off" />
+        <input type="password" id="pwd-confirm-input" placeholder="Confirm password" spellcheck="false" autocomplete="off" />
         <div id="pwd-timeout-row" class="menu-slider-row">
           <span>Auto-lock</span>
           <input type="range" id="pwd-lock-timeout" min="0" max="60" value="5">

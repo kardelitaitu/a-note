@@ -27,6 +27,7 @@ const pwdInput = document.getElementById("pwd-input");
 const pwdError = document.getElementById("pwd-error");
 const pwdConfirm = document.getElementById("pwd-confirm");
 const pwdCancel = document.getElementById("pwd-cancel");
+const pwdConfirmInput = document.getElementById("pwd-confirm-input");
 
 const themes = [
   { id: "dark", label: "Dark" },
@@ -391,12 +392,15 @@ function showPwdOverlay(title, placeholder, mode, callback) {
   pwdError.classList.add("hidden");
   pwdError.textContent = "";
   pwdInput.value = "";
+  pwdConfirmInput.value = "";
+  pwdConfirmInput.style.display = "block";
   pwdOverlay.classList.remove("hidden");
 
-  // Show/hide the auto-lock slider based on mode
+  // Show/hide the auto-lock slider and confirm field based on mode
   const timeoutRow = document.getElementById("pwd-timeout-row");
   if (mode === "remove") {
     timeoutRow.style.display = "none";
+    pwdConfirmInput.style.display = "none";
   } else {
     timeoutRow.style.display = "flex";
     // Sync slider with current config value
@@ -419,6 +423,15 @@ pwdConfirm.addEventListener("click", async () => {
   if (!pwd) {
     pwdError.textContent = "Password cannot be empty.";
     pwdError.classList.remove("hidden");
+    pwdConfirm.disabled = false;
+    return;
+  }
+
+  // For set/change modes, validate confirm password matches
+  if (pwdMode !== "remove" && pwdConfirmInput.value !== pwd) {
+    pwdError.textContent = "Passwords do not match.";
+    pwdError.classList.remove("hidden");
+    pwdConfirm.disabled = false;
     return;
   }
 

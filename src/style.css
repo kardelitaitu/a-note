@@ -706,6 +706,28 @@ html, body {
   outline: none;
 }
 
+#pwd-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+#pwd-confirm-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid var(--input-border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--input-text);
+  font-family: 'Segoe UI', sans-serif;
+}
+
+#pwd-confirm-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
 .menu-slider-row input::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 12px;
