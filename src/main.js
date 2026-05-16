@@ -235,38 +235,61 @@ async function saveNote() {
 
 // Auto-save 5s after last edit
 let saveTimer;
+let lastSelectionStart = 0;
+let lastSelectionEnd = 0;
+
+function cacheEditorSelection() {
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  if (typeof start === "number" && typeof end === "number") {
+    lastSelectionStart = start;
+    lastSelectionEnd = end;
+  }
+}
+
 editor.addEventListener("input", () => {
+  cacheEditorSelection();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(saveNote, 5000);
   resetLockTimer(); // Reset lock timer on user activity
 });
 
+["click", "keyup", "select", "focus"].forEach((eventName) => {
+  editor.addEventListener(eventName, cacheEditorSelection);
+});
+
 function insertTextAtCursor(text) {
-  const start = editor.selectionStart ?? 0;
-  const end = editor.selectionEnd ?? start;
+  const hasLiveSelection = document.activeElement === editor
+    && typeof editor.selectionStart === "number"
+    && typeof editor.selectionEnd === "number";
+  const start = hasLiveSelection ? editor.selectionStart : lastSelectionStart;
+  const end = hasLiveSelection ? editor.selectionEnd : lastSelectionEnd;
   const before = editor.value.slice(0, start);
   const after = editor.value.slice(end);
   const nextPos = start + text.length;
 
   editor.value = before + text + after;
   editor.setSelectionRange(nextPos, nextPos);
+  cacheEditorSelection();
   editor.focus();
   editor.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 editor.addEventListener("dragover", (e) => {
-  if (isLocked) return;
   e.preventDefault();
+  if (isLocked) return;
   if (e.dataTransfer) {
     e.dataTransfer.dropEffect = "copy";
   }
 });
 
 editor.addEventListener("drop", (e) => {
-  if (isLocked) return;
   e.preventDefault();
+  if (isLocked) return;
 
-  const text = e.dataTransfer?.getData("text/plain") || "";
+  const text = e.dataTransfer?.getData("text/plain")
+    || e.dataTransfer?.getData("text")
+    || "";
   if (!text) return;
 
   insertTextAtCursor(text);
