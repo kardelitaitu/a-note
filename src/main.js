@@ -488,14 +488,26 @@ document.getElementById("pwd-lock-timeout").addEventListener("input", (e) => {
 
 btnMenu.addEventListener("click", (e) => {
   e.stopPropagation();
+  const wasOpen = menuDropdown.classList.contains("open");
   menuDropdown.classList.toggle("open");
-  menuDropdown.classList.remove("show-themes", "show-titlebar", "show-fonts");
+  // If closing from a submenu, delay submenu reset until fade-out ends
+  if (wasOpen) {
+    setTimeout(() => {
+      menuDropdown.classList.remove("show-themes", "show-titlebar", "show-fonts");
+    }, 150);
+  } else {
+    menuDropdown.classList.remove("show-themes", "show-titlebar", "show-fonts");
+  }
 });
 
 function closeMenu() {
   menuDropdown.classList.remove("open");
-  menuDropdown.classList.remove("show-themes", "show-titlebar");
   document.body.className = "theme-" + config.theme;
+  // Wait for dropdown fade-out (0.15s) before resetting submenu page,
+  // otherwise the main menu flashes during the transition
+  setTimeout(() => {
+    menuDropdown.classList.remove("show-themes", "show-titlebar", "show-fonts");
+  }, 150);
 }
 
 // Theme submenu navigation
