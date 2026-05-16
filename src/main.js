@@ -340,6 +340,12 @@ const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home
 
 editor.addEventListener("keydown", (e) => {
   if (!SCROLL_KEYS.has(e.key)) return;
+  // Skip repeats (holding key) — let native scroll take over for responsiveness
+  if (e.repeat) return;
+
+  // Stop any running wheel momentum
+  if (ss.animId) { cancelAnimationFrame(ss.animId); ss.animId = null; }
+  ss.velocity = 0;
 
   // Let browser process the key first (moves cursor + scrolls natively)
   const oldTop = editor.scrollTop;
