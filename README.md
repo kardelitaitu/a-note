@@ -13,16 +13,13 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0">⬇ Download notes.exe (v0.2.0)</a>
+  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0">⬇ Download for Windows Latest (v0.2.0)</a>
 </p>
 
 <p align="center">
   <a href="src/preview.mp4">
     <img src="src/preview.gif" alt="a-note preview" width="880">
   </a>
-</p>
-<p align="center">
-  <a href="src/preview.mp4">🎬 Watch full preview (MP4)</a>
 </p>
 
 ---

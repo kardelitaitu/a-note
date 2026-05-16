@@ -326,3 +326,50 @@ fn test_same_content_different_keys_produce_different_ciphertexts() {
     assert_ne!(ct_a, ct_b, "different keys should produce different ciphertexts");
     assert_ne!(nonce_a, nonce_b, "different keys still get unique nonces");
 }
+
+// ── Large payload ─────────────────────────────────────────────────
+
+#[test]
+fn test_large_payload_full_workflow() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("large-payload", &salt).unwrap();
+    let large_text = "Hello World!\n".repeat(10_000);
+    assert!(large_text.len() > 100_000);
+
+    let (nonce, ct) = crypto::encrypt(&large_text, &key).unwrap();
+    let pt = crypto::decrypt(&ct, &nonce, &key).unwrap();
+    assert_eq!(pt, large_text);
+
+    // Wrap in NoteFile and back
+    let note = sticky_notes_lib::note::Note {
+        text: large_text.clone(),
+        cursor_pos: 5000,
+        scroll_top: 100,
+    };
+    let nf = sticky_notes_lib::note::NoteFile::from_encrypted(&note, &key).unwrap();
+    let restored = nf.decrypt_to_note(&key).unwrap();
+    assert_eq!(restored.text, large_text);
+    assert_eq!(restored.cursor_pos, 5000);
+}
+
+// ── Unicode password ───────────────────────────────────────────────
+
+#[test]
+fn test_unicode_password_full_workflow() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("пароль_密码_🔑_p@$$w0rd", &salt).unwrap();
+    let (nonce, ct) = crypto::encrypt("unicode password test", &key).unwrap();
+    let pt = crypto::decrypt(&ct, &nonce, &key).unwrap();
+    assert_eq!(pt, "unicode password test");
+}
+
+// ── Wrong password edge case ───────────────────────────────────────
+
+#[test]
+fn test_special_char_password() {
+    let salt = crypto::generate_salt();
+    let key = crypto::derive_key("\t\n\r\\\"'`!@#$%^&*()_+-=[]{}|;':,./<>?", &salt).unwrap();
+    let (nonce, ct) = crypto::encrypt("special chars", &key).unwrap();
+    let pt = crypto::decrypt(&ct, &nonce, &key).unwrap();
+    assert_eq!(pt, "special chars");
+}

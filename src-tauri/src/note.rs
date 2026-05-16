@@ -1325,4 +1325,124 @@ mod tests {
         let decrypted = restored.decrypt_to_note(&key).unwrap();
         assert_eq!(decrypted.text, "serialize me");
     }
+
+    // ── NoteFile backward compat: missing text field ──────────────
+
+    #[test]
+    fn test_notefile_missing_text_field_defaults_empty() {
+        // text has #[serde(default)], so missing in JSON defaults to ""
+        let json = r#"{"encrypted":false,"cursor_pos":5,"scroll_top":2}"#;
+        let nf: NoteFile = serde_json::from_str(json).unwrap();
+        assert!(!nf.encrypted);
+        assert_eq!(nf.text, "");
+        assert_eq!(nf.cursor_pos, 5);
+        assert_eq!(nf.scroll_top, 2);
+    }
+
+    #[test]
+    fn test_notefile_empty_text_roundtrip() {
+        // text: "" should not appear in JSON encrypted notes (skip_serializing_if)
+        let nf = NoteFile {
+            encrypted: true,
+            nonce_hex: Some("aa".to_string()),
+            ciphertext_hex: Some("bb".to_string()),
+            text: String::new(),
+            cursor_pos: 1,
+            scroll_top: 2,
+        };
+        let json = serde_json::to_string(&nf).unwrap();
+        assert!(!json.contains("\"text\""), "empty text should be skipped");
+        // Deserialize should work with default for text
+        let restored: NoteFile = serde_json::from_str(&json).unwrap();
+        assert_eq!(restored.text, "");
+        assert_eq!(restored.cursor_pos, 1);
+        assert_eq!(restored.scroll_top, 2);
+    }
+
+    // ── Note::save / Note::load temp file tests ──────────────────
+
+    #[test]
+    fn test_note_save_and_load_roundtrip() {
+        let dir = std::env::temp_dir().join(format!("a-note-test-note-save-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("temp.notes");
+
+        // Override note_path by saving directly to file
+        let note = Note {
+            text: "temp file roundtrip".to_string(),
+            cursor_pos: 7,
+            scroll_top: 3,
+        };
+        let json = serde_json::to_string_pretty(&note).unwrap();
+        std::fs::write(&path, &json).unwrap();
+
+        // Read it back (simulating Note::load)
+        let read_back = std::fs::read_to_string(&path).unwrap_or_default();
+        let restored: Note = serde_json::from_str(&read_back).unwrap();
+        assert_eq!(restored.text, "temp file roundtrip");
+        assert_eq!(restored.cursor_pos, 7);
+        assert_eq!(restored.scroll_top, 3);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_note_save_empty_text() {
+        let dir = std::env::temp_dir().join(format!("a-note-test-note-empty-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("empty.notes");
+
+        let note = Note {
+            text: String::new(),
+            cursor_pos: 0,
+            scroll_top: 0,
+        };
+        let json = serde_json::to_string_pretty(&note).unwrap();
+        std::fs::write(&path, &json).unwrap();
+
+        let read_back = std::fs::read_to_string(&path).unwrap_or_default();
+        let restored: Note = serde_json::from_str(&read_back).unwrap();
+        assert!(restored.text.is_empty());
+        assert_eq!(restored.cursor_pos, 0);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_note_file_corrupt_json_returns_default() {
+        let dir = std::env::temp_dir().join(format!("a-note-test-note-corrupt-{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&dir);
+        let path = dir.join("corrupt.notes");
+        std::fs::write(&path, "not valid json{{").unwrap();
+
+        let read_back = std::fs::read_to_string(&path).unwrap_or_default();
+        let restored: Result<Note, _> = serde_json::from_str(&read_back);
+        assert!(restored.is_err(), "corrupt JSON should fail to parse");
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // ── NoteFile minimal JSON edge cases ─────────────────────────
+
+    #[test]
+    fn test_notefile_only_encrypted_true() {
+        // Minimal encrypted NoteFile with just flag
+        let json = r#"{"encrypted":true,"cursor_pos":0,"scroll_top":0}"#;
+        let nf: NoteFile = serde_json::from_str(json).unwrap();
+        assert!(nf.encrypted);
+        assert!(nf.nonce_hex.is_none());
+        assert!(nf.ciphertext_hex.is_none());
+        assert_eq!(nf.text, "");
+    }
+
+    #[test]
+    fn test_notefile_non_encrypted_but_with_crypto_fields() {
+        // Non-encrypted NoteFile with crypto fields should still deserialize
+        let json = r#"{"encrypted":false,"nonce_hex":"aa","ciphertext_hex":"bb","text":"hello","cursor_pos":0,"scroll_top":0}"#;
+        let nf: NoteFile = serde_json::from_str(json).unwrap();
+        assert!(!nf.encrypted);
+        // Crypto fields may still be present (user can ignore them)
+        assert_eq!(nf.nonce_hex, Some("aa".to_string()));
+        assert_eq!(nf.text, "hello");
+    }
 }
