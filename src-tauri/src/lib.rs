@@ -23,12 +23,12 @@ fn update_tray_color(color: String, app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-fn set_start_with_windows(enabled: bool) {
+fn set_start_with_windows(enabled: bool) -> Result<(), String> {
     util::set_startup_registry(enabled);
-    let mut data = storage::load();
+    let mut data = storage::try_load()?;
     data.config.start_with_windows = enabled;
     data.log = diagnostics::flush_to_log_str();
-    storage::save(&data);
+    storage::save(&data)?;
     diagnostics::event(
         "startup",
         &format!(
@@ -36,6 +36,7 @@ fn set_start_with_windows(enabled: bool) {
             if enabled { "enabled" } else { "disabled" }
         ),
     );
+    Ok(())
 }
 
 // ── Response types ───────────────────────────────────────────────────────
@@ -60,82 +61,61 @@ pub struct UnlockResult {
 }
 
 /// Try to decode the password salt from config.
-/// If the config is corrupt (password_protected true but salt missing/invalid),
-/// auto-repair by resetting password_protected to false, converting any
-/// encrypted note back to plaintext (empty content), and saving.
-/// Returns the decoded salt bytes or an Err describing the repair.
+/// Fail-closed behavior: never mutates on-disk encrypted data automatically.
 fn salt_from_config(cfg: &config::Config) -> Result<Vec<u8>, String> {
     if cfg.password_salt.is_empty() {
-        // Corrupt state: repair by resetting protection and clearing encrypted note
-        let mut data = storage::load();
-        data.config.password_protected = false;
-        data.config.password_salt = String::new();
-        if data.note.encrypted {
-            data.note = note::NoteFile {
-                encrypted: false,
-                nonce_hex: None,
-                ciphertext_hex: None,
-                text: String::new(),
-                cursor_pos: data.note.cursor_pos,
-                scroll_top: data.note.scroll_top,
-            };
-        }
-        storage::save(&data);
-        return Err("Password config was corrupted and has been reset. Please set a new password.".to_string());
+        return Err(
+            "Password configuration is missing salt. Encrypted note was preserved. Restore a valid config backup before unlocking."
+                .to_string(),
+        );
     }
-    hex::decode(&cfg.password_salt).map_err(|e| {
-        // Corrupt hex: repair by resetting protection
-        let mut data = storage::load();
-        data.config.password_protected = false;
-        data.config.password_salt = String::new();
-        if data.note.encrypted {
-            data.note = note::NoteFile {
-                encrypted: false,
-                nonce_hex: None,
-                ciphertext_hex: None,
-                text: String::new(),
-                cursor_pos: data.note.cursor_pos,
-                scroll_top: data.note.scroll_top,
-            };
-        }
-        storage::save(&data);
-        format!("Password config was corrupted (invalid salt: {e}) and has been reset. Please set a new password.")
-    })
+    let salt = hex::decode(&cfg.password_salt).map_err(|e| {
+        format!(
+            "Password configuration is invalid (salt hex: {e}). Encrypted note was preserved."
+        )
+    })?;
+    if salt.len() < 8 {
+        return Err(format!(
+            "Password configuration is invalid (salt length: {} bytes). Encrypted note was preserved.",
+            salt.len()
+        ));
+    }
+    Ok(salt)
 }
 
 // ── Commands ─────────────────────────────────────────────────────────────
 
 #[tauri::command]
-fn load_config() -> config::Config {
-    storage::load().config
+fn load_config() -> Result<config::Config, String> {
+    Ok(storage::try_load()?.config)
 }
 
 #[tauri::command]
-fn save_config(cfg: config::Config) {
-    let mut data = storage::load();
+fn save_config(cfg: config::Config) -> Result<(), String> {
+    let mut data = storage::try_load()?;
     data.config = cfg;
     data.log = diagnostics::flush_to_log_str();
-    storage::save(&data);
+    storage::save(&data)
 }
 
 #[tauri::command]
-fn load_note() -> LoadNoteResult {
-    let nf = storage::load().note;
+fn load_note() -> Result<LoadNoteResult, String> {
+    let nf = storage::try_load()?.note;
     if nf.encrypted {
-        // Locked — frontend must prompt for password
-        LoadNoteResult {
+        // Locked - frontend must prompt for password
+        Ok(LoadNoteResult {
             locked: true,
             text: None,
             cursor_pos: Some(nf.cursor_pos),
             scroll_top: Some(nf.scroll_top),
-        }
+        })
     } else {
-        LoadNoteResult {
+        Ok(LoadNoteResult {
             locked: false,
             text: Some(nf.text),
             cursor_pos: Some(nf.cursor_pos),
             scroll_top: Some(nf.scroll_top),
-        }
+        })
     }
 }
 
@@ -144,7 +124,7 @@ fn save_note(
     note: note::Note,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut data = storage::load();
+    let mut data = storage::try_load()?;
 
     if data.config.password_protected {
         let key_guard = state
@@ -155,8 +135,7 @@ fn save_note(
             let nf = note::NoteFile::from_encrypted(&note, key)?;
             data.note = nf;
             data.log = diagnostics::flush_to_log_str();
-            storage::save(&data);
-            Ok(())
+            storage::save(&data)
         } else {
             Err("Note is password-protected but not unlocked".to_string())
         }
@@ -170,8 +149,7 @@ fn save_note(
             scroll_top: note.scroll_top,
         };
         data.log = diagnostics::flush_to_log_str();
-        storage::save(&data);
-        Ok(())
+        storage::save(&data)
     }
 }
 
@@ -186,7 +164,13 @@ fn set_password(
         return Err("Password cannot be empty".to_string());
     }
 
-    let mut data = storage::load();
+    let mut data = storage::try_load()?;
+    if data.config.password_protected || data.note.encrypted {
+        return Err(
+            "Password is already set or note data is already encrypted. Use Change password after unlocking."
+                .to_string(),
+        );
+    }
     let salt = crypto::generate_salt();
     let salt_hex = hex::encode(salt);
     let key = crypto::derive_key(&password, &salt)?;
@@ -204,7 +188,7 @@ fn set_password(
     data.config.password_protected = true;
     data.config.password_salt = salt_hex;
     data.log = diagnostics::flush_to_log_str();
-    storage::save(&data);
+    storage::save(&data)?;
 
     // Cache the key
     let mut key_guard = state
@@ -223,7 +207,7 @@ fn unlock(
     password: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<UnlockResult, String> {
-    let data = storage::load();
+    let data = storage::try_load()?;
     let cfg = &data.config;
     if !cfg.password_protected {
         return Err("Note is not password-protected".to_string());
@@ -273,13 +257,18 @@ fn remove_password(
     password: String,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
-    let mut data = storage::load();
+    let mut data = storage::try_load()?;
     if !data.config.password_protected {
         return Err("Note is not password-protected".to_string());
     }
+    if !data.note.encrypted {
+        return Err(
+            "Cannot remove password because note data is not encrypted. Repair the storage file first."
+                .to_string(),
+        );
+    }
 
-    let salt = hex::decode(&data.config.password_salt)
-        .map_err(|e| format!("invalid salt hex: {e}"))?;
+    let salt = salt_from_config(&data.config)?;
     let key = crypto::derive_key(&password, &salt)?;
 
     let decrypted = data.note.decrypt_to_note(&key)?;
@@ -296,7 +285,7 @@ fn remove_password(
     data.config.password_protected = false;
     data.config.password_salt = String::new();
     data.log = diagnostics::flush_to_log_str();
-    storage::save(&data);
+    storage::save(&data)?;
 
     // Clear cached key
     let mut key_guard = state
@@ -320,14 +309,19 @@ fn change_password(
         return Err("New password cannot be empty".to_string());
     }
 
-    let mut data = storage::load();
+    let mut data = storage::try_load()?;
     if !data.config.password_protected {
         return Err("Note is not password-protected".to_string());
     }
+    if !data.note.encrypted {
+        return Err(
+            "Cannot change password because note data is not encrypted. Repair the storage file first."
+                .to_string(),
+        );
+    }
 
     // Verify old password
-    let salt = hex::decode(&data.config.password_salt)
-        .map_err(|e| format!("invalid salt hex: {e}"))?;
+    let salt = salt_from_config(&data.config)?;
     let old_key = crypto::derive_key(&old_pwd, &salt)?;
 
     let decrypted = data.note.decrypt_to_note(&old_key)?;
@@ -341,7 +335,7 @@ fn change_password(
     data.note = new_nf;
     data.config.password_salt = hex::encode(new_salt);
     data.log = diagnostics::flush_to_log_str();
-    storage::save(&data);
+    storage::save(&data)?;
 
     // Cache new key
     let mut key_guard = state

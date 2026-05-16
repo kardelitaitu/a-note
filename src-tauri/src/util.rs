@@ -7,12 +7,14 @@ extern "system" {
     fn SetFileAttributesW(lpFileName: *const u16, dwFileAttributes: u32) -> i32;
 }
 
-pub fn write(path: &Path, contents: &str) {
+pub fn write(path: &Path, contents: &str) -> Result<(), String> {
     let hidden = was_hidden(path);
-    let _ = std::fs::write(path, contents);
+    std::fs::write(path, contents)
+        .map_err(|e| format!("failed to write {}: {e}", path.display()))?;
     if hidden {
-        set_hidden(path);
+        set_hidden(path)?;
     }
+    Ok(())
 }
 
 #[cfg(windows)]
@@ -29,20 +31,28 @@ fn was_hidden(_path: &Path) -> bool {
 }
 
 #[cfg(windows)]
-fn set_hidden(path: &Path) {
+fn set_hidden(path: &Path) -> Result<(), String> {
     use std::os::windows::ffi::OsStrExt;
     let wide: Vec<u16> = path
         .as_os_str()
         .encode_wide()
         .chain(std::iter::once(0))
         .collect();
-    unsafe {
-        SetFileAttributesW(wide.as_ptr(), FILE_ATTRIBUTE_HIDDEN);
+    let ok = unsafe { SetFileAttributesW(wide.as_ptr(), FILE_ATTRIBUTE_HIDDEN) };
+    if ok == 0 {
+        return Err(format!(
+            "failed to restore hidden attribute on {}: {}",
+            path.display(),
+            std::io::Error::last_os_error()
+        ));
     }
+    Ok(())
 }
 
 #[cfg(not(windows))]
-fn set_hidden(_path: &Path) {}
+fn set_hidden(_path: &Path) -> Result<(), String> {
+    Ok(())
+}
 
 // ── Start with Windows (registry) ────────────────────────────────────
 
@@ -220,11 +230,11 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("test.txt");
 
-        write(&path, "hello");
+        write(&path, "hello").unwrap();
         let content = std::fs::read_to_string(&path).unwrap();
         assert_eq!(content, "hello");
 
-        write(&path, "world");
+        write(&path, "world").unwrap();
         let content = std::fs::read_to_string(&path).unwrap();
         assert_eq!(content, "world");
 
@@ -237,7 +247,7 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("empty.txt");
 
-        write(&path, "");
+        write(&path, "").unwrap();
         let content = std::fs::read_to_string(&path).unwrap();
         assert_eq!(content, "");
 
@@ -271,7 +281,7 @@ mod tests {
                 .unwrap_or(false)
         );
 
-        write(&path, "rewritten");
+        write(&path, "rewritten").unwrap();
 
         assert!(
             path.metadata()
@@ -292,7 +302,7 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("plain.txt");
 
-        write(&path, "first write");
+        write(&path, "first write").unwrap();
         assert!(
             !path
                 .metadata()
@@ -300,7 +310,7 @@ mod tests {
                 .unwrap_or(true)
         );
 
-        write(&path, "second write");
+        write(&path, "second write").unwrap();
         assert!(
             !path
                 .metadata()
@@ -318,7 +328,7 @@ mod tests {
         let path = dir.join("special.txt");
 
         let content = "hello\nworld\n  tabs\there\n  unicode: 世界 🚀\n  quotes: \"'`\n  angle: <test>";
-        write(&path, content);
+        write(&path, content).unwrap();
         let read_back = std::fs::read_to_string(&path).unwrap();
         assert_eq!(read_back, content);
 
@@ -334,7 +344,7 @@ mod tests {
         // 50 KB of content
         let content = "The quick brown fox jumps over the lazy dog.\n".repeat(1200);
         assert!(content.len() > 50_000);
-        write(&path, &content);
+        write(&path, &content).unwrap();
         let read_back = std::fs::read_to_string(&path).unwrap();
         assert_eq!(read_back.len(), content.len());
         assert_eq!(read_back, content);
@@ -348,8 +358,8 @@ mod tests {
         let _ = std::fs::create_dir_all(&dir);
         let path = dir.join("overwrite.txt");
 
-        write(&path, "long content here that should be replaced");
-        write(&path, "short");
+        write(&path, "long content here that should be replaced").unwrap();
+        write(&path, "short").unwrap();
         let read_back = std::fs::read_to_string(&path).unwrap();
         assert_eq!(read_back, "short");
         // File should not contain leftover bytes from previous content
@@ -365,7 +375,7 @@ mod tests {
         let path = dir.join("newly_created.txt");
 
         assert!(!path.exists());
-        write(&path, "brand new");
+        write(&path, "brand new").unwrap();
         assert!(path.exists());
         let read_back = std::fs::read_to_string(&path).unwrap();
         assert_eq!(read_back, "brand new");
@@ -374,15 +384,15 @@ mod tests {
     }
 
     #[test]
-    fn test_write_nonexistent_parent_does_not_panic() {
+    fn test_write_nonexistent_parent_returns_err() {
         // Writing to a path whose parent directory doesn't exist
-        // should fail silently (no panic), not crash.
+        // should return an error instead of silently succeeding.
         let dir = std::env::temp_dir().join(format!("a-note-test-nonexist-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir); // ensure it doesn't exist
         let path = dir.join("nested").join("file.txt");
 
-        // This should not panic — write() discards the error
-        write(&path, "should fail silently");
+        let result = write(&path, "should fail");
+        assert!(result.is_err());
         // File should NOT exist since parent doesn't exist
         assert!(!path.exists());
     }

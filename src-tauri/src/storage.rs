@@ -61,47 +61,69 @@ pub fn legacy_exists() -> bool {
 /// If the file doesn't exist or is corrupt, returns a fresh default.
 /// Also auto-repairs common corrupt states on load.
 pub fn load() -> NoteData {
+    try_load().unwrap_or_else(|_| fresh())
+}
+
+/// Load with surfaced errors so command handlers can bubble failures to UI.
+pub fn try_load() -> Result<NoteData, String> {
     let path = notes_path();
-    if path.exists() {
-        let mut data = std::fs::read_to_string(&path)
-            .ok()
-            .and_then(|s| serde_json::from_str::<NoteData>(&s).ok())
-            .unwrap_or_else(fresh);
-
-        // Auto-repair: config says password-protected but salt is empty
-        // and note is not encrypted → deadlock. Clear the flag.
-        if data.config.password_protected
-            && data.config.password_salt.is_empty()
-            && !data.note.encrypted
-        {
-            data.config.password_protected = false;
-            save(&data);
-        }
-
-        data
-    } else {
-        fresh()
+    if !path.exists() {
+        return Ok(fresh());
     }
+
+    let raw = std::fs::read_to_string(&path)
+        .map_err(|e| format!("failed to read {}: {e}", path.display()))?;
+    let mut data = serde_json::from_str::<NoteData>(&raw)
+        .map_err(|e| format!("failed to parse {}: {e}", path.display()))?;
+
+    if reconcile_invariants(&mut data) {
+        save(&data)?;
+    }
+
+    Ok(data)
+}
+
+fn reconcile_invariants(data: &mut NoteData) -> bool {
+    let mut changed = false;
+
+    // Fail-closed: encrypted content must stay in protected mode.
+    if data.note.encrypted && !data.config.password_protected {
+        data.config.password_protected = true;
+        changed = true;
+    }
+
+    // Safe auto-fix: plaintext note must not stay in protected mode.
+    if !data.note.encrypted && data.config.password_protected {
+        data.config.password_protected = false;
+        changed = true;
+    }
+
+    // Remove stale salt whenever protection is disabled.
+    if !data.config.password_protected && !data.config.password_salt.is_empty() {
+        data.config.password_salt.clear();
+        changed = true;
+    }
+
+    changed
 }
 
 /// Save the combined NoteData to `{exe}.notes`.
-pub fn save(data: &NoteData) {
-    if let Ok(json) = serde_json::to_string_pretty(data) {
-        crate::util::write(&notes_path(), &json);
-    }
+pub fn save(data: &NoteData) -> Result<(), String> {
+    let json = serde_json::to_string_pretty(data)
+        .map_err(|e| format!("failed to serialize notes data: {e}"))?;
+    crate::util::write(&notes_path(), &json)
 }
-
 /// Load just the config from the combined file.
 pub fn load_config() -> crate::config::Config {
     load().config
 }
 
 /// Save config through the combined file, flushing diagnostics log.
-pub fn save_config(cfg: &crate::config::Config) {
-    let mut data = load();
+pub fn save_config(cfg: &crate::config::Config) -> Result<(), String> {
+    let mut data = try_load()?;
     data.config = cfg.clone();
     data.log = crate::diagnostics::flush_to_log_str();
-    save(&data);
+    save(&data)
 }
 
 /// Load just the NoteFile from the combined file.
@@ -110,20 +132,23 @@ pub fn load_note_file() -> crate::note::NoteFile {
 }
 
 /// Save NoteFile through the combined file, flushing diagnostics log.
-pub fn save_note_file(nf: &crate::note::NoteFile) {
-    let mut data = load();
+pub fn save_note_file(nf: &crate::note::NoteFile) -> Result<(), String> {
+    let mut data = try_load()?;
     data.note = nf.clone();
     data.log = crate::diagnostics::flush_to_log_str();
-    save(&data);
+    save(&data)
 }
 
 /// Atomically save both config and NoteFile (used by password operations).
-pub fn save_config_and_note(cfg: &crate::config::Config, nf: &crate::note::NoteFile) {
-    let mut data = load();
+pub fn save_config_and_note(
+    cfg: &crate::config::Config,
+    nf: &crate::note::NoteFile,
+) -> Result<(), String> {
+    let mut data = try_load()?;
     data.config = cfg.clone();
     data.note = nf.clone();
     data.log = crate::diagnostics::flush_to_log_str();
-    save(&data);
+    save(&data)
 }
 
 /// Create a fresh NoteData with defaults.
@@ -175,8 +200,11 @@ pub fn migrate_from_legacy() -> NoteData {
         log,
     };
 
+    let mut data = data;
+    let _ = reconcile_invariants(&mut data);
+
     // Write the combined file
-    save(&data);
+    let _ = save(&data);
 
     // Remove old files silently
     let _ = std::fs::remove_file(&legacy_config_path());

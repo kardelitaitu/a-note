@@ -104,10 +104,10 @@ pub fn load() -> Config {
     }
 }
 
-pub fn save(config: &Config) {
-    if let Ok(json) = serde_json::to_string_pretty(config) {
-        crate::util::write(&config_path(), &json);
-    }
+pub fn save(config: &Config) -> Result<(), String> {
+    let json = serde_json::to_string_pretty(config)
+        .map_err(|e| format!("failed to serialize config: {e}"))?;
+    crate::util::write(&config_path(), &json)
 }
 
 #[cfg(test)]

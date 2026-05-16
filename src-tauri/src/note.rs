@@ -54,10 +54,10 @@ pub fn load() -> Note {
     }
 }
 
-pub fn save(note: &Note) {
-    if let Ok(json) = serde_json::to_string_pretty(note) {
-        crate::util::write(&note_path(), &json);
-    }
+pub fn save(note: &Note) -> Result<(), String> {
+    let json = serde_json::to_string_pretty(note)
+        .map_err(|e| format!("failed to serialize note: {e}"))?;
+    crate::util::write(&note_path(), &json)
 }
 
 // ── On-disk NoteFile (supports both plaintext + encrypted) ──────────────
@@ -185,10 +185,10 @@ pub fn load_file() -> NoteFile {
 }
 
 /// Save a `NoteFile` to disk.
-pub fn save_file(nf: &NoteFile) {
-    if let Ok(json) = serde_json::to_string_pretty(nf) {
-        crate::util::write(&note_path(), &json);
-    }
+pub fn save_file(nf: &NoteFile) -> Result<(), String> {
+    let json = serde_json::to_string_pretty(nf)
+        .map_err(|e| format!("failed to serialize note file: {e}"))?;
+    crate::util::write(&note_path(), &json)
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────
