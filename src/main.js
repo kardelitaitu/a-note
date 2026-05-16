@@ -264,6 +264,7 @@ editor.addEventListener("input", () => {
 
 // Ctrl+Scroll to zoom
 editor.addEventListener("wheel", (e) => {
+  if (isLocked) return;
   if (e.ctrlKey) {
     e.preventDefault();
     const step = 1.1;
@@ -340,6 +341,7 @@ const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home
 
 editor.addEventListener("keydown", (e) => {
   if (!SCROLL_KEYS.has(e.key)) return;
+  if (isLocked) return;
   // Skip repeats (holding key) — let native scroll take over for responsiveness
   if (e.repeat) return;
 
