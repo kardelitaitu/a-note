@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.0 — 2026-05-16
+
+### Added
+- **Smooth scroll with momentum**: wheel scrolling now uses velocity-based physics — builds up, glides with deceleration (0.88/frame), stops cleanly at boundaries (no bounce)
+- **Smooth arrow/page key scrolling**: ArrowUp/Down, PageUp/Down, Home/End keys animate scroll with ease-out cubic curve (100ms) via "revert and animate" technique
+- **Better font rendering**: `-webkit-font-smoothing: antialiased`, `text-rendering: optimizeLegibility` for cleaner text on dark backgrounds — grayscale AA instead of ClearType color fringing
+- **`{ passive: false }` wheel listener**: ensures `preventDefault()` works reliably in modern browsers
+
+### Fixed
+- Wheel scroll no longer bounces at top/bottom boundaries (was oscillating with -0.3 rebound)
+- Arrow key repeat events (`e.repeat`) now use native scroll for responsiveness during held keys
+- Wheel momentum cancelled when arrow keys are pressed (prevents conflicting animations)
+
 ## 0.3.0 — 2026-05-16
 
 ### Added
