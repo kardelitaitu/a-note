@@ -365,7 +365,7 @@ mod tests {
             log: "[100] test: log entry\n".to_string(),
         };
 
-        save(&data);
+        save(&data).unwrap();
         assert!(exists(), "combined file should exist after save");
 
         let loaded = load();
@@ -431,12 +431,85 @@ mod tests {
             note,
             log: String::new(),
         };
-        save(&data);
+        save(&data).unwrap();
 
         // Now load should auto-repair
         let loaded = load();
         assert!(!loaded.config.password_protected, "should repair deadlock");
         assert_eq!(loaded.config.font_size, 20, "config values preserved");
+        assert!(!loaded.note.encrypted);
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_load_repairs_encrypted_note_with_unprotected_flag() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        let salt = crate::crypto::generate_salt();
+        let key = crate::crypto::derive_key("repair-encrypted-flag", &salt).unwrap();
+        let note = crate::note::Note {
+            text: "encrypted payload".to_string(),
+            cursor_pos: 3,
+            scroll_top: 1,
+        };
+        let encrypted = crate::note::NoteFile::from_encrypted(&note, &key).unwrap();
+
+        let mut cfg = crate::config::Config::default();
+        cfg.password_protected = false;
+        cfg.password_salt = hex::encode(salt);
+
+        let data = NoteData {
+            version: 1,
+            config: cfg,
+            note: encrypted,
+            log: String::new(),
+        };
+        save(&data).unwrap();
+
+        let loaded = load();
+        assert!(loaded.note.encrypted);
+        assert!(
+            loaded.config.password_protected,
+            "encrypted note must force protected mode"
+        );
+
+        let repaired_salt = hex::decode(&loaded.config.password_salt).unwrap();
+        let repaired_key = crate::crypto::derive_key("repair-encrypted-flag", &repaired_salt).unwrap();
+        let decrypted = loaded.note.decrypt_to_note(&repaired_key).unwrap();
+        assert_eq!(decrypted.text, "encrypted payload");
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_load_clears_stale_salt_when_unprotected() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        let mut cfg = crate::config::Config::default();
+        cfg.password_protected = false;
+        cfg.password_salt = "aabbccddeeff00112233445566778899".to_string();
+
+        let data = NoteData {
+            version: 1,
+            config: cfg,
+            note: crate::note::NoteFile {
+                encrypted: false,
+                nonce_hex: None,
+                ciphertext_hex: None,
+                text: "plain".to_string(),
+                cursor_pos: 0,
+                scroll_top: 0,
+            },
+            log: String::new(),
+        };
+        save(&data).unwrap();
+
+        let loaded = load();
+        assert!(!loaded.config.password_protected);
+        assert!(loaded.config.password_salt.is_empty(), "stale salt should be removed");
         assert!(!loaded.note.encrypted);
 
         cleanup_test_files();
@@ -450,7 +523,7 @@ mod tests {
         // Save config via helper
         let mut cfg = crate::config::Config::default();
         cfg.font_size = 30;
-        save_config(&cfg);
+        save_config(&cfg).unwrap();
 
         // Save note via helper
         let nf = crate::note::NoteFile {
@@ -461,7 +534,7 @@ mod tests {
             cursor_pos: 3,
             scroll_top: 9,
         };
-        save_note_file(&nf);
+        save_note_file(&nf).unwrap();
 
         // Load config
         let loaded_cfg = load_config();
@@ -494,7 +567,7 @@ mod tests {
             scroll_top: 0,
         };
 
-        save_config_and_note(&cfg, &nf);
+        save_config_and_note(&cfg, &nf).unwrap();
 
         let loaded = load();
         assert!(!loaded.config.always_on_top);
@@ -690,7 +763,7 @@ mod tests {
             &derived_key,
         )
         .unwrap();
-        save(&save_data);
+        save(&save_data).unwrap();
 
         // 5. Verify re-save didn't corrupt the config
         let final_data = load();

@@ -5,7 +5,7 @@
 <h1 align="center">a-note</h1>
 
 <p align="center">
-  <strong>~8 MB · Zero install · Portable · Encrypted</strong>
+  <strong>~9 MB · Zero install · Portable · Encrypted</strong>
 </p>
 
 <p align="center">
@@ -13,12 +13,12 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.1.5">⬇ Download notes.exe (v0.1.5)</a>
+  <a href="https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0">⬇ Download notes.exe (v0.2.0)</a>
 </p>
 
 ---
 
-**Drop it anywhere, run it.** Config and notes save right next to the `.exe`. Rename the file to anything — data files follow. Move the folder to another machine and everything goes with you: notes, window position, font size, pin state, encryption settings.
+**Drop it anywhere, run it.** Config and notes save right next to the `.exe` in a single `.notes` file. Rename the file to anything — data files follow. Move the folder to another machine and everything goes with you: notes, window position, font size, pin state, encryption settings.
 
 Built with Rust + Tauri v2. No Electron. No bloat.
 
@@ -28,15 +28,16 @@ Built with Rust + Tauri v2. No Electron. No bloat.
 |---|---|
 | 🔒 **AES-256-GCM encryption** | Password-protect notes with Argon2id key derivation |
 | ⏰ **Auto-lock timer** | Configurable timeout — note locks after inactivity |
-| 🎨 **15 themes** | Dark, light, dracula, nord, catppuccin, gruvbox, solarized, and more |
-| 🎯 **Custom titlebar color** | Native color picker with fill slider (0–100%) |
+|| 🎨 **15 themes** | Dark, light, dracula, nord, catppuccin, gruvbox, solarized, and more |
+|| 🎯 **Custom titlebar color** | Native color picker with fill slider (0–100%) |
+|| ✅ **Confirm password** | Two-field password entry ensures no typos on set/change |
 | 📌 **Always on top** | Toggle pin to keep the window above everything |
 | ⌨️ **Ctrl+Scroll** | Zoom font size 8–72px in real time |
 | 💾 **Auto-save** | 5s after you stop typing, also on minimize/close/pin toggle |
 | 📝 **Word wrap** | Toggle in the hamburger menu |
 | 🖱️ **Double-click** | Selects the entire line, preserves scroll position |
 | 🪟 **Frameless** | Dark theme, clean monospace editor, slim scrollbar |
-| 📁 **Portable** | One `.exe`, three data files. Move anywhere. |
+|| 📁 **Portable** | One `.exe`, one `.notes` file. Move anywhere. |
 | 🏷️ **Smart title** | Title bar shows the `.exe` filename — rename freely |
 | 🔒 **Hidden-safe** | Files keep their hidden attribute when rewritten |
 | 📋 **Crash logging** | Panics captured to `{exe}.crash` — no silent failures |
@@ -52,7 +53,7 @@ Built with Rust + Tauri v2. No Electron. No bloat.
 
 ## Download
 
-**[⬇ Download notes.exe (v0.1.5)](https://github.com/kardelitaitu/a-note/releases/tag/v0.1.5)**
+**[⬇ Download notes.exe (v0.2.0)](https://github.com/kardelitaitu/a-note/releases/tag/v0.2.0)**
 
 No installation. No setup. Run it.
 
@@ -85,9 +86,9 @@ Experimental Tauri v2 mobile support — see [CONTRIBUTING.md](CONTRIBUTING.md).
 ## Testing
 
 ```bash
-# 175 tests across unit, integration, and property-based suites
+# 191 tests across unit, integration, and property-based suites
 cd src-tauri
-cargo test --lib              # 153 unit tests
+cargo test --lib              # 169 unit tests
 cargo test --test encryption  # 14 integration tests
 cargo test --test property    # 8 property-based tests (proptest)
 ```

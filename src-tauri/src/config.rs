@@ -184,7 +184,7 @@ mod tests {
             start_with_windows: false,
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
-        crate::util::write(&path, &json);
+        crate::util::write(&path, &json).unwrap();
 
         let read_back = std::fs::read_to_string(&path).unwrap();
         let restored: Config = serde_json::from_str(&read_back).unwrap();
@@ -271,7 +271,7 @@ mod tests {
         };
 
         let json = serde_json::to_string_pretty(&cfg).unwrap();
-        crate::util::write(&path, &json);
+        crate::util::write(&path, &json).unwrap();
 
         let read_back = std::fs::read_to_string(&path).unwrap();
         let restored: Config = serde_json::from_str(&read_back).unwrap();
@@ -358,7 +358,7 @@ mod tests {
             ..Config::default()
         };
         let json = serde_json::to_string_pretty(&cfg).unwrap();
-        crate::util::write(&path, &json);
+        crate::util::write(&path, &json).unwrap();
 
         let read_back = std::fs::read_to_string(&path).unwrap();
         let restored: Config = serde_json::from_str(&read_back).unwrap();

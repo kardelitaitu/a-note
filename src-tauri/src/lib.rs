@@ -522,46 +522,14 @@ mod tests {
     }
 
     #[test]
-    fn test_salt_from_config_repair_clears_encrypted_note() {
-        // Simulate the exact corrupt state: password_protected=true,
-        // password_salt="", but note IS encrypted with valid crypto fields.
-        // salt_from_config should repair by resetting both password and note.
+    fn test_salt_from_config_fail_closed_preserves_encrypted_note() {
+        // Missing salt should fail closed with an explicit recovery message.
         let mut cfg = config::Config::default();
         cfg.password_protected = true;
         cfg.password_salt = String::new();
 
-        let key = [0xABu8; 32];
-        let note = note::Note {
-            text: "lost content".to_string(),
-            cursor_pos: 10,
-            scroll_top: 5,
-        };
-        let nf = note::NoteFile::from_encrypted(&note, &key).unwrap();
-        let data = storage::NoteData {
-            version: 1,
-            config: cfg,
-            note: nf,
-            log: String::new(),
-        };
-        storage::save(&data);
-
-        let loaded = storage::load();
-        let result = salt_from_config(&loaded.config);
+        let result = salt_from_config(&cfg);
         assert!(result.is_err());
-        assert!(result.unwrap_err().contains("corrupted"));
-
-        let repaired = storage::load();
-        assert!(!repaired.config.password_protected);
-        assert!(!repaired.note.encrypted);
-        assert!(repaired.note.text.is_empty());
-        assert_eq!(repaired.note.cursor_pos, 10);
-        assert_eq!(repaired.note.scroll_top, 5);
-
-        // Clean up
-        let _ = std::fs::remove_file(
-            std::env::current_exe().unwrap().parent().unwrap().join(
-                std::env::current_exe().unwrap().file_stem().unwrap().to_string_lossy().as_ref().to_string() + ".notes"
-            )
-        );
+        assert!(result.unwrap_err().contains("preserved"));
     }
 }

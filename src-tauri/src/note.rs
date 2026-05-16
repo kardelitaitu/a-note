@@ -471,7 +471,7 @@ mod tests {
             scroll_top: 2,
         };
         let json = serde_json::to_string_pretty(&nf).unwrap();
-        crate::util::write(&path, &json);
+        crate::util::write(&path, &json).unwrap();
 
         let read_back = std::fs::read_to_string(&path).unwrap();
         let restored: NoteFile = serde_json::from_str(&read_back).unwrap();
@@ -501,7 +501,7 @@ mod tests {
         let key = derive_key("sekret", &salt).unwrap();
         let nf = NoteFile::from_encrypted(&note, &key).unwrap();
         let json = serde_json::to_string_pretty(&nf).unwrap();
-        crate::util::write(&path, &json);
+        crate::util::write(&path, &json).unwrap();
 
         let read_back = std::fs::read_to_string(&path).unwrap();
         let restored: NoteFile = serde_json::from_str(&read_back).unwrap();
