@@ -9,16 +9,24 @@
 - **In-memory diagnostics**: event log stored in `Mutex<String>` buffer instead of file I/O; flushed to NoteData on save via `flush_to_log_str()` / `restore_from_log_str()`
 - **Confirm password**: second password field on set/change dialog — both must match before submitting
 - **Config auto-repair in `storage::load()`**: `password_protected=true` with empty `password_salt` and unencrypted note is now detected and fixed on every load
-- **`salt_from_config` clears encrypted note**: when repairing a corrupt config where salt is missing, the encrypted note is also cleared to prevent a locked-but-no-password deadlock
+- **Fail-closed salt recovery**: missing salt no longer destroys ciphertext; unlock now returns a clear recovery error and preserves encrypted note bytes
+- **Legacy salt recovery path**: salt can be recovered from legacy `.config` content when available, then persisted into combined storage
 - **Copyright field**: set to "kardelitaitu" in exe properties via `tauri.conf.json` bundle config
 - 13 storage module tests: format roundtrip, file I/O, corrupt file fallback, migration (basic + encrypted + no files), user-scenario unlock/save/reload
 
 ### Changed
 - All Tauri commands (`load_config`, `save_config`, `load_note`, `save_note`, `set_password`, `unlock`, `lock`, `remove_password`, `change_password`, `set_start_with_windows`) now go through `storage::load()` / `storage::save()`
 - `NoteFile` struct: added `Clone` derive for storage helpers
+- Persistence writes now return `Result` and bubble failures back to the UI instead of silently ignoring write errors
+- `storage::load()` enforces invariants for impossible encryption states (encrypted note + `password_protected=false`, stale salt while unprotected) with safe repair behavior
+- `set_password` now refuses insecure precondition paths when note/config are already protected or encrypted outside verified flows
+- `save_config` now preserves password metadata (`password_protected`, `password_salt`) from storage to prevent stale frontend state from overwriting valid values
+- Tauri build pipeline now runs Vite with `--configLoader runner` and no longer uses `& exit /b 0`, so frontend build failures fail the release build
 
 ### Security
-- 191 total tests (169 lib + 14 integration + 8 property-based)
+- Added command-level tests for `set_password` precondition rejection (already-protected and already-encrypted paths)
+- Added end-to-end write-failure test to verify persistence errors are visible to the UI
+- Added invariant/salt recovery tests for fail-closed handling and safe mismatch repair
 
 ## 0.1.5 — 2026-05-16
 
