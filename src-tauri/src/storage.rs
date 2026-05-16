@@ -59,13 +59,26 @@ pub fn legacy_exists() -> bool {
 
 /// Load the combined NoteData from `{exe}.notes`.
 /// If the file doesn't exist or is corrupt, returns a fresh default.
+/// Also auto-repairs common corrupt states on load.
 pub fn load() -> NoteData {
     let path = notes_path();
     if path.exists() {
-        std::fs::read_to_string(&path)
+        let mut data = std::fs::read_to_string(&path)
             .ok()
-            .and_then(|s| serde_json::from_str(&s).ok())
-            .unwrap_or_else(fresh)
+            .and_then(|s| serde_json::from_str::<NoteData>(&s).ok())
+            .unwrap_or_else(fresh);
+
+        // Auto-repair: config says password-protected but salt is empty
+        // and note is not encrypted → deadlock. Clear the flag.
+        if data.config.password_protected
+            && data.config.password_salt.is_empty()
+            && !data.note.encrypted
+        {
+            data.config.password_protected = false;
+            save(&data);
+        }
+
+        data
     } else {
         fresh()
     }
@@ -359,6 +372,45 @@ mod tests {
         let data = load();
         assert_eq!(data.version, 1);
         assert!(data.note.text.is_empty());
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_load_repairs_password_no_salt_plaintext_note() {
+        // Simulate the user's corrupt file: password_protected=true,
+        // password_salt="", but note is NOT encrypted and has no text.
+        // load() should auto-repair by clearing password_protected.
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        let mut cfg = crate::config::Config::default();
+        cfg.password_protected = true;
+        cfg.password_salt = String::new();
+        cfg.font_size = 20;
+
+        let note = crate::note::NoteFile {
+            encrypted: false,
+            nonce_hex: None,
+            ciphertext_hex: None,
+            text: String::new(),
+            cursor_pos: 0,
+            scroll_top: 0,
+        };
+
+        let data = NoteData {
+            version: 1,
+            config: cfg,
+            note,
+            log: String::new(),
+        };
+        save(&data);
+
+        // Now load should auto-repair
+        let loaded = load();
+        assert!(!loaded.config.password_protected, "should repair deadlock");
+        assert_eq!(loaded.config.font_size, 20, "config values preserved");
+        assert!(!loaded.note.encrypted);
+
         cleanup_test_files();
     }
 
