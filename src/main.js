@@ -12,9 +12,17 @@ const menuStartup = document.getElementById("menu-startup");
 let config = { width: 300, height: 400, left: 100, top: 100, font_size: 14, always_on_top: true, word_wrap: false, theme: "dark", titlebar_color: "", titlebar_fill: 100 };
 
 // ── Toast notification ─────────────────────────────────
+let lastToastMsg = "";
+let lastToastTime = 0;
+
 function showToast(msg, isError) {
   const bar = document.getElementById("toast-bar");
   if (!bar) return;
+  // Cooldown: skip if same message shown in last 2s (prevents spam on autosave)
+  const now = Date.now();
+  if (msg === lastToastMsg && now - lastToastTime < 2000) return;
+  lastToastMsg = msg;
+  lastToastTime = now;
   bar.textContent = msg;
   bar.className = isError ? "error" : "";
   bar.classList.remove("hidden");
@@ -133,6 +141,7 @@ function initThemes() {
       applyTheme();
       saveConfig();
       closeMenu();
+      showToast("Theme saved");
     });
     container.appendChild(btn);
   });
@@ -179,6 +188,7 @@ function initFonts() {
       applyFont();
       saveConfig();
       closeMenu();
+      showToast("Font Saved");
     });
     container.appendChild(btn);
   });
@@ -238,6 +248,7 @@ async function saveNote() {
         scroll_top: editor.scrollTop,
       },
     });
+    showToast("Note Autosaved");
   } catch (e) {
     showToast("Failed to save note", true);
   }
@@ -453,6 +464,7 @@ pwdConfirm.addEventListener("click", async () => {
       updatePasswordMenuItems();
       hidePwdOverlay();
       startLockTimer();
+      showToast("Note Encrypted");
     } else if (pwdMode === "change") {
       if (pwdCallback) pwdCallback(pwd);
       hidePwdOverlay();
@@ -568,6 +580,7 @@ document.getElementById("menu-titlebar-default").addEventListener("click", () =>
   applyTitlebarColor();
   saveConfig();
   closeMenu();
+  showToast("Titlebar Color Changed");
   // Reset tray icon to default blue
   invoke("update_tray_color", { color: "#5dade2" }).catch(() => {});
 });
@@ -587,6 +600,7 @@ menuStartup.addEventListener("click", () => {
   invoke("set_start_with_windows", { enabled }).then(() => {
     config.start_with_windows = enabled;
     applyStartupState();
+    showToast(enabled ? "Autostart Enabled" : "Autostart Disabled");
   }).catch((e) => {
     showToast("Failed to update Auto Start", true);
   });
@@ -605,6 +619,7 @@ btnPin.addEventListener("click", async () => {
   config.always_on_top = !config.always_on_top;
   applyPinState();
   saveConfig();
+  showToast(config.always_on_top ? "Always On Top Enabled" : "Always On Top Disabled");
   const { getCurrentWindow } = await import("@tauri-apps/api/window");
   await getCurrentWindow().setAlwaysOnTop(config.always_on_top);
 });
