@@ -241,6 +241,37 @@ editor.addEventListener("input", () => {
   resetLockTimer(); // Reset lock timer on user activity
 });
 
+function insertTextAtCursor(text) {
+  const start = editor.selectionStart ?? 0;
+  const end = editor.selectionEnd ?? start;
+  const before = editor.value.slice(0, start);
+  const after = editor.value.slice(end);
+  const nextPos = start + text.length;
+
+  editor.value = before + text + after;
+  editor.setSelectionRange(nextPos, nextPos);
+  editor.focus();
+  editor.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+editor.addEventListener("dragover", (e) => {
+  if (isLocked) return;
+  e.preventDefault();
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = "copy";
+  }
+});
+
+editor.addEventListener("drop", (e) => {
+  if (isLocked) return;
+  e.preventDefault();
+
+  const text = e.dataTransfer?.getData("text/plain") || "";
+  if (!text) return;
+
+  insertTextAtCursor(text);
+});
+
 // Ctrl+Scroll to zoom
 editor.addEventListener("wheel", (e) => {
   if (!e.ctrlKey) return;

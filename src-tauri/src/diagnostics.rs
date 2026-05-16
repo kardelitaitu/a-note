@@ -195,4 +195,35 @@ mod tests {
         assert!(log.contains("old event"), "restored entry should appear");
         assert!(log.contains("new event"), "new entry should appear");
     }
+
+    #[test]
+    fn test_crash_file_path_format() {
+        // Ensure the crash file path follows {exe}.crash pattern
+        let dir = exe_dir();
+        let stem = exe_stem();
+        let crash_path = dir.join(format!("{stem}.crash"));
+        let path_str = crash_path.to_string_lossy();
+        assert!(path_str.ends_with(".crash"), "should end with .crash");
+        assert!(path_str.contains(stem.as_str()), "should contain exe stem");
+    }
+
+    #[test]
+    fn test_concurrent_events_dont_panic() {
+        let _lock = DIAG_LOCK.lock().unwrap();
+        let _ = flush_to_log_str(); // clear
+
+        let mut handles = Vec::new();
+        for i in 0..10 {
+            handles.push(std::thread::spawn(move || {
+                event("thread", &format!("event {i}"));
+            }));
+        }
+        for h in handles {
+            let _ = h.join();
+        }
+        let log = flush_to_log_str();
+        // At least some events should have been recorded
+        assert!(!log.is_empty(), "concurrent events should produce output");
+        assert!(log.contains("thread"), "should contain thread events");
+    }
 }

@@ -337,10 +337,90 @@ mod tests {
         exe_dir()
     }
 
-    fn cleanup_test_files() {
+fn cleanup_test_files() {
         let _ = std::fs::remove_file(test_dir().join(format!("{}.notes", test_stem())));
         let _ = std::fs::remove_file(test_dir().join(format!("{}.config", test_stem())));
         let _ = std::fs::remove_file(test_dir().join(format!("{}.log", test_stem())));
+    }
+
+    #[test]
+    fn test_note_data_json_structure() {
+        // Verify the exact JSON structure of a serialized NoteData
+        let data = NoteData {
+            version: 1,
+            config: crate::config::Config::default(),
+            note: crate::note::NoteFile {
+                encrypted: true,
+                nonce_hex: Some("aabbccdd1122".to_string()),
+                ciphertext_hex: Some("ffeeddccbbaa".to_string()),
+                text: String::new(),
+                cursor_pos: 5,
+                scroll_top: 1,
+            },
+            log: "[100] test\n".to_string(),
+        };
+        let json = serde_json::to_string_pretty(&data).unwrap();
+        // Must contain top-level fields
+        assert!(json.contains("\"version\": 1"));
+        assert!(json.contains("\"config\""));
+        assert!(json.contains("\"note\""));
+        assert!(json.contains("\"log\""));
+        // Encrypted note must not contain "text" field (skipped when empty)
+        assert!(!json.contains("\"text\""));
+        // Must have crypto fields
+        assert!(json.contains("\"nonce_hex\""));
+        assert!(json.contains("\"ciphertext_hex\""));
+    }
+
+    #[test]
+    fn test_save_then_upgrade_to_encrypted() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // Start with unencrypted note
+        let data = NoteData {
+            version: 1,
+            config: crate::config::Config::default(),
+            note: crate::note::NoteFile {
+                encrypted: false,
+                nonce_hex: None,
+                ciphertext_hex: None,
+                text: "plain text".to_string(),
+                cursor_pos: 3,
+                scroll_top: 0,
+            },
+            log: String::new(),
+        };
+        save(&data);
+
+        // Now upgrade: set password, encrypt
+        let key = [0xABu8; 32];
+        let mut loaded = load();
+        let encrypted_nf = crate::note::NoteFile::from_encrypted(
+            &crate::note::Note {
+                text: loaded.note.text.clone(),
+                cursor_pos: loaded.note.cursor_pos,
+                scroll_top: loaded.note.scroll_top,
+            },
+            &key,
+        )
+        .unwrap();
+        loaded.config.password_protected = true;
+        loaded.config.password_salt = hex::encode([0x01u8; 16]);
+        loaded.note = encrypted_nf;
+        loaded.log = crate::diagnostics::flush_to_log_str();
+        save(&loaded);
+
+        // Verify encrypted state
+        let reloaded = load();
+        assert!(reloaded.config.password_protected);
+        assert!(reloaded.note.encrypted);
+        assert!(reloaded.note.text.is_empty());
+        assert!(reloaded.note.nonce_hex.is_some());
+        let decrypted = reloaded.note.decrypt_to_note(&key).unwrap();
+        assert_eq!(decrypted.text, "plain text");
+
+        cleanup_test_files();
     }
 
     #[test]

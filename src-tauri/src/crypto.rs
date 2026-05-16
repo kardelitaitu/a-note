@@ -376,6 +376,35 @@ mod tests {
         assert_eq!(pt, "ff key text");
     }
 
+    // ── Alternating key patterns ─────────────────────────────────────
+
+    #[test]
+    fn test_alternating_aa_key() {
+        let key = [0xAAu8; 32];
+        let (nonce, ct) = encrypt("alternating AA key", &key).unwrap();
+        let pt = decrypt(&ct, &nonce, &key).unwrap();
+        assert_eq!(pt, "alternating AA key");
+    }
+
+    #[test]
+    fn test_alternating_55_key() {
+        let key = [0x55u8; 32];
+        let (nonce, ct) = encrypt("alternating 55 key", &key).unwrap();
+        let pt = decrypt(&ct, &nonce, &key).unwrap();
+        assert_eq!(pt, "alternating 55 key");
+    }
+
+    #[test]
+    fn test_counting_key_pattern() {
+        let mut key = [0u8; 32];
+        for i in 0..32 {
+            key[i] = i as u8;
+        }
+        let (nonce, ct) = encrypt("counting key test", &key).unwrap();
+        let pt = decrypt(&ct, &nonce, &key).unwrap();
+        assert_eq!(pt, "counting key test");
+    }
+
     // ── Auth tag / GCM edge cases ──────────────────────────────────────
 
     #[test]

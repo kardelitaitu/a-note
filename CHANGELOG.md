@@ -8,6 +8,7 @@
 - **Auto-migration**: on first v0.2.0 launch, old `{exe}.config`, `{exe}.notes`, and `{exe}.log` are read, merged, written as combined `.notes`, then old files deleted
 - **In-memory diagnostics**: event log stored in `Mutex<String>` buffer instead of file I/O; flushed to NoteData on save via `flush_to_log_str()` / `restore_from_log_str()`
 - **Confirm password**: second password field on set/change dialog — both must match before submitting
+- **Drag-and-drop text insertion**: dropping plain text into the editor now inserts it at the current cursor/selection position
 - **Config auto-repair in `storage::load()`**: `password_protected=true` with empty `password_salt` and unencrypted note is now detected and fixed on every load
 - **Fail-closed salt recovery**: missing salt no longer destroys ciphertext; unlock now returns a clear recovery error and preserves encrypted note bytes
 - **Legacy salt recovery path**: salt can be recovered from legacy `.config` content when available, then persisted into combined storage
