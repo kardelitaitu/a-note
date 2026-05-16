@@ -144,6 +144,17 @@ pub fn migrate_from_legacy() -> NoteData {
 
     let log = std::fs::read_to_string(&legacy_log_path()).unwrap_or_default();
 
+    // Defensive: if config says password-protected but salt is missing or
+    // invalid, repair it before writing the combined file. This prevents
+    // "Password config was corrupted" errors on the first unlock attempt.
+    let config = if config.password_protected && config.password_salt.is_empty() {
+        let mut repaired = config;
+        repaired.password_protected = false;
+        repaired
+    } else {
+        config
+    };
+
     let data = NoteData {
         version: CURRENT_VERSION,
         config,
@@ -528,6 +539,85 @@ mod tests {
         assert_eq!(decrypted.text, "migration secret");
         assert_eq!(decrypted.cursor_pos, 7);
         assert_eq!(decrypted.scroll_top, 3);
+
+        cleanup_test_files();
+    }
+
+    #[test]
+    fn test_migrate_user_scenario_password_unlock_works() {
+        let _lock = FILE_LOCK.lock().unwrap();
+        cleanup_test_files();
+
+        // 1. Setup old-style password-protected config
+        let password = "hunter2";
+        let salt = crate::crypto::generate_salt();
+        let key = crate::crypto::derive_key(password, &salt).unwrap();
+
+        let mut old_cfg = crate::config::Config::default();
+        old_cfg.password_protected = true;
+        old_cfg.password_salt = hex::encode(salt);
+        let cfg_json = serde_json::to_string_pretty(&old_cfg).unwrap();
+        std::fs::write(
+            test_dir().join(format!("{}.config", test_stem())),
+            &cfg_json,
+        )
+        .unwrap();
+
+        let note = crate::note::Note {
+            text: "my secret note".to_string(),
+            cursor_pos: 5,
+            scroll_top: 2,
+        };
+        let nf = crate::note::NoteFile::from_encrypted(&note, &key).unwrap();
+        let nf_json = serde_json::to_string(&nf).unwrap();
+        std::fs::write(
+            test_dir().join(format!("{}.notes", test_stem())),
+            &nf_json,
+        )
+        .unwrap();
+        std::fs::write(
+            test_dir().join(format!("{}.log", test_stem())),
+            "[100] startup: started\n",
+        )
+        .unwrap();
+
+        // 2. Simulate app startup: migrate
+        assert!(legacy_exists());
+        let _ = migrate_from_legacy();
+        assert!(exists(), "combined file should exist after migration");
+
+        // 3. Simulate unlock: load config+note, derive key, decrypt
+        let loaded = load();
+        assert!(loaded.config.password_protected);
+        assert!(!loaded.config.password_salt.is_empty());
+        assert!(loaded.note.encrypted);
+
+        let decoded_salt = hex::decode(&loaded.config.password_salt).unwrap();
+        let derived_key = crate::crypto::derive_key(password, &decoded_salt).unwrap();
+        let decrypted = loaded.note.decrypt_to_note(&derived_key).unwrap();
+        assert_eq!(decrypted.text, "my secret note");
+        assert_eq!(decrypted.cursor_pos, 5);
+        assert_eq!(decrypted.scroll_top, 2);
+
+        // 4. Simulate save after unlock: modify and re-save
+        let mut save_data = load();
+        save_data.note = crate::note::NoteFile::from_encrypted(
+            &crate::note::Note {
+                text: "updated note after unlock".to_string(),
+                cursor_pos: 0,
+                scroll_top: 0,
+            },
+            &derived_key,
+        )
+        .unwrap();
+        save(&save_data);
+
+        // 5. Verify re-save didn't corrupt the config
+        let final_data = load();
+        assert!(final_data.config.password_protected);
+        assert!(!final_data.config.password_salt.is_empty());
+        let final_decrypted = final_data.note.decrypt_to_note(&derived_key).unwrap();
+        assert_eq!(final_decrypted.text, "updated note after unlock");
 
         cleanup_test_files();
     }
