@@ -5,8 +5,8 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
-    "beforeDevCommand": "node node_modules/vite/bin/vite.js --configLoader runner",
-    "beforeBuildCommand": "node node_modules/vite/bin/vite.js build & exit /b 0"
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build & exit /b 0"
   },
   "app": {
     "windows": [

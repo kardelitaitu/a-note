@@ -407,6 +407,7 @@ fn get_app_name() -> String {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     diagnostics::init();
+    let _ = crate::paths::verify();
 
     // Migrate from legacy separate-file format (v0.1.x → v0.2.0)
     if storage::legacy_exists() {

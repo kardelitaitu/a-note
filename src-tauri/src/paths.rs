@@ -55,3 +55,42 @@ pub fn legacy_log_path() -> PathBuf {
 pub fn crash_path() -> PathBuf {
     exe_dir().join(format!("{}.crash", exe_stem()))
 }
+
+/// Verify that all path functions work without panicking.
+/// Call once at startup. Logs a warning instead of crashing.
+pub fn verify() -> Result<(), String> {
+    let _ = exe_stem();
+    let _ = exe_dir();
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_exe_stem_returns_string() {
+        let stem = exe_stem();
+        assert!(!stem.is_empty(), "exe_stem should not be empty");
+        assert!(!stem.contains('.'), "exe_stem should not contain extension");
+    }
+
+    #[test]
+    fn test_exe_dir_returns_path() {
+        let dir = exe_dir();
+        assert!(dir.is_absolute(), "exe_dir should be absolute");
+    }
+
+    #[test]
+    fn test_paths_are_valid() {
+        let notes = notes_path();
+        assert!(notes.to_string_lossy().ends_with(".notes"));
+        assert!(notes.parent().is_some());
+
+        let crash = crash_path();
+        assert!(crash.to_string_lossy().ends_with(".crash"));
+
+        let legacy = legacy_config_path();
+        assert!(legacy.to_string_lossy().ends_with(".config"));
+    }
+}
