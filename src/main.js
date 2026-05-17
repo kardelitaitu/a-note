@@ -566,6 +566,9 @@ pwdCancel.addEventListener("click", hidePwdOverlay);
 pwdInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") pwdConfirm.click();
 });
+pwdConfirmInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") pwdConfirm.click();
+});
 
 // Lock timeout slider in password overlay
 document.getElementById("pwd-lock-timeout").addEventListener("input", (e) => {
